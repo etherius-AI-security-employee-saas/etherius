@@ -404,6 +404,17 @@ body {
   gap: 10px;
 }
 
+.private-note {
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(159, 124, 255, 0.3);
+  background: rgba(31, 21, 60, 0.62);
+  color: #d8ccfb;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
 .release-status {
   margin: 2px 0 0;
   font-size: 0.84rem;
