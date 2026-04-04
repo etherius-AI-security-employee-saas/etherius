@@ -1,108 +1,92 @@
 # Etherius
 
-Enterprise-grade AI cybersecurity platform for employee endpoint defense, real-time threat intelligence, and license-controlled SaaS distribution.
+High-trust AI cybersecurity platform for employee endpoint protection, multi-tenant security operations, and license-controlled SaaS delivery.
 
-Public Download Website: https://website-ecru-seven-71.vercel.app
+[![Public Site](https://img.shields.io/badge/Public%20Site-Live-0a8fff?style=for-the-badge)](https://etherius-security-site.vercel.app)
+[![Dashboard](https://img.shields.io/badge/Dashboard-Live-18c9a6?style=for-the-badge)](https://etherius-security-dashboard.vercel.app)
+[![API](https://img.shields.io/badge/API-Live-f7a948?style=for-the-badge)](https://etherius-security-api.vercel.app/health)
 
-## Why Etherius Is Different
+## Live Production Links
 
-Etherius is designed as a full-stack security operations system, not just a dashboard:
+1. Public Website: `https://etherius-security-site.vercel.app`
+2. Customer Dashboard: `https://etherius-security-dashboard.vercel.app`
+3. Backend API: `https://etherius-security-api.vercel.app`
+4. API Health Check: `https://etherius-security-api.vercel.app/health`
+
+## Platform Scope
+
+Etherius is not a single UI project. It is a complete security platform:
+
+1. **Provider/CEO Control Plane**
+   Subscription key issuance, seat licensing, and tenant provisioning.
+2. **Customer SOC Dashboard**
+   Threat visibility, endpoint monitoring, and operational workflows.
+3. **Employee Shield Agent**
+   Device enrollment, telemetry collection, heartbeat, and event submission.
+4. **Public Distribution Front Door**
+   Branded website for software delivery and product communication.
+
+## What Makes Etherius Enterprise-Grade
 
 1. Multi-tenant architecture with strict company isolation.
-2. Subscription-based seat control (sell 100, 300, 1000+ employees safely).
-3. Controlled employee enrollment with license enforcement.
-4. Live endpoint telemetry with risk scoring and alerting.
-5. AI-powered explanation pipeline for analyst-friendly threat context.
-6. Response workflows for isolation and containment actions.
-7. Customer-safe distribution model (EXE package, no source required).
+2. Seat-based subscription enforcement (commercial quantity controls).
+3. Employee key lifecycle (issue/revoke/activation limits).
+4. AI-assisted risk scoring and alert explanation.
+5. Role-aware surface separation (provider vs customer vs employee).
+6. Branded Windows binaries with taskbar identity.
+7. Public web + dashboard + API deployed as distinct internet domains.
 
-## Core Product Surfaces
+## Domain Wiring (Where Domains Are Needed)
+
+### 1) Public marketing/download domain
+Used by prospects and customers to discover and download.
+
+### 2) Dashboard domain
+Used by customer admins/security operators for daily operations.
+
+### 3) Backend API domain
+Used by:
+1. Dashboard frontend (API calls).
+2. Employee Shield clients (enrollment, heartbeat, events).
+
+Without backend domain, dashboard and agents cannot operate globally.
+
+## Repository Structure
 
 1. `backend/`  
-   FastAPI + SQLAlchemy service for auth, licensing, telemetry ingestion, dashboard APIs, and tenancy enforcement.
+   FastAPI service, RBAC, tenant controls, licensing APIs, telemetry APIs.
 
 2. `dashboard/`  
-   React operations console for customer administrators and security analysts.
+   React + Vite frontend for alerts, endpoints, response, and settings.
 
 3. `agent/`  
-   Employee Shield client for endpoint enrollment, heartbeat, event capture, suspicious email analysis, and protection workflow.
+   Employee Shield desktop client and collectors.
 
 4. `suite/`  
-   Branded Control Center desktop launcher for operational startup and health visibility.
+   Branded desktop control center for startup/ops.
 
-5. `CUSTOMER_SETUP_ETHERIUS/`  
-   Deployment-ready customer package with separate manuals for customer admins and employees.
+5. `website/`  
+   Public high-visual landing and download site (Vercel deployed).
 
-## Security Highlights
+6. `installer/`  
+   Build and packaging pipeline for Windows distribution.
 
-1. Role-based access control with admin/manager/viewer boundaries.
-2. Cross-tenant protection and company-scoped data access.
-3. Subscription key issuance with CEO master key gate.
-4. Seat-based employee quantity enforcement.
-5. Employee key generation, revocation, and activation tracking.
-6. Production hardening switches:
-   - `ENV=production`
-   - `ENABLE_API_DOCS=false`
-   - `ENABLE_DEMO_SEED=false`
-   - `SEED_COMPANY_DATA_ON_REGISTER=false`
+## Security and Production Baseline
 
-## Customer SaaS Sales Model
+1. `ENV=production`
+2. `ENABLE_API_DOCS=false`
+3. `ENABLE_DEMO_SEED=false`
+4. `SEED_COMPANY_DATA_ON_REGISTER=false`
+5. Strong `SECRET_KEY`, `AGENT_SECRET_KEY`, `CEO_MASTER_KEY`
+6. Explicit `CORS_ORIGINS` set to trusted dashboard/site domains
 
-Etherius is built for commercial rollout:
+## Deployment Status
 
-1. CEO/provider issues subscription per customer with seat limit.
-2. Customer admin registers company and generates employee keys.
-3. Employee installs Shield and enrolls with company code + employee key.
-4. New enrollments are blocked automatically when seat limit is reached.
+1. Public website deployed on Vercel.
+2. Dashboard deployed on Vercel.
+3. Backend API deployed on Vercel.
+4. Cross-domain CORS configured for dashboard + site.
 
-## Stunning Operational Depth
+## Product Vision
 
-Etherius combines the visual polish of modern SaaS with the control rigor of enterprise security tooling:
-
-1. One-click operations startup.
-2. Real-time telemetry + endpoint state.
-3. AI-assisted threat interpretation.
-4. Defensive response controls.
-5. Branded Windows binaries with taskbar/icon identity.
-6. Clear role split between provider, customer admin, and employee users.
-
-## Quick Start (Dev)
-
-1. Backend:
-```powershell
-cd backend
-venv\Scripts\python.exe run_backend.py
-```
-
-2. Dashboard (dev mode):
-```powershell
-cd dashboard
-npm install
-npm run dev
-```
-
-3. Full local suite:
-```powershell
-START_ETHERIUS.bat
-```
-
-## Production Publish
-
-See:
-
-- `PUBLISH_NOW.md`
-- `CUSTOMER_SETUP_ETHERIUS/CUSTOMER_README.md`
-- `CUSTOMER_SETUP_ETHERIUS/CUSTOMER_ADMIN_MANUAL.md`
-- `CUSTOMER_SETUP_ETHERIUS/EMPLOYEE_MANUAL.md`
-
-## Vision
-
-Etherius is engineered to feel like a premium, high-trust security platform: controlled, scalable, and deployable at real business scale across organizations and employee fleets.
-
-## Public Download Site
-
-The standalone public download experience is located in:
-
-- `website/`
-
-Deploy this folder to Vercel as a dedicated marketing/download front door.
+Etherius is engineered to present premium UX while preserving hard security boundaries: a platform that looks elite, sells like SaaS, and operates like real security infrastructure.
