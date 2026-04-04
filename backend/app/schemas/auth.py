@@ -46,3 +46,9 @@ class LicenseOut(BaseModel):
     current_activations: int
     expires_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+
+
+class SubscriptionLicenseCreate(BaseModel):
+    label: Optional[str] = None
+    max_activations: int = 1
+    valid_days: int = 365

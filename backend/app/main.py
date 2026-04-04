@@ -77,7 +77,11 @@ def startup():
 
     try:
         if settings.ENV != "development":
-            if "change_in_production" in settings.SECRET_KEY or "change_in_production" in settings.AGENT_SECRET_KEY:
+            if (
+                "change_in_production" in settings.SECRET_KEY
+                or "change_in_production" in settings.AGENT_SECRET_KEY
+                or "CHANGE_THIS_CEO_MASTER_KEY" in settings.CEO_MASTER_KEY
+            ):
                 raise RuntimeError("Production secret keys are not configured securely.")
         init_db()
         print("[Etherius] Database ready")

@@ -35,6 +35,9 @@ dashboard/node_modules/
 dist/
 dashboard/dist/
 .vite/
+build/
+release/
+*.spec
 
 # OS / editor
 .DS_Store

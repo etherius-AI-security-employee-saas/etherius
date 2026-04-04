@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     DEMO_ADMIN_PASSWORD: str = "Admin123!"
     DEMO_COMPANY_NAME: str = "Etherius Demo"
     DEMO_SUBSCRIPTION_KEY: str = "ETH-SUB-DEMO-2026-START"
+    CEO_MASTER_KEY: str = "CHANGE_THIS_CEO_MASTER_KEY_FOR_PRODUCTION"
 
     model_config = SettingsConfigDict(
         env_file=".env",

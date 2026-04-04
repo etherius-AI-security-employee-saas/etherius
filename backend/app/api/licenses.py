@@ -1,15 +1,16 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models.license_key import LicenseKey
 from app.models.user import User
-from app.schemas.auth import EmployeeLicenseCreate, LicenseOut
+from app.schemas.auth import EmployeeLicenseCreate, LicenseOut, SubscriptionLicenseCreate
 from app.security.dependencies import get_current_user
-from app.security.licenses import create_employee_license
+from app.security.licenses import create_employee_license, generate_license_value
 from app.security.rbac import require_min_role
 from app.utils.audit import log_action
 
@@ -120,3 +121,27 @@ def revoke_employee_key(
         key.id,
     )
     return {"message": "Employee key revoked"}
+
+
+@router.post("/subscription/issue", response_model=LicenseOut, status_code=201)
+def issue_subscription_key(
+    payload: SubscriptionLicenseCreate,
+    x_ceo_key: str = Header(default=""),
+    db: Session = Depends(get_db),
+):
+    if x_ceo_key != settings.CEO_MASTER_KEY:
+        raise HTTPException(401, "Invalid CEO master key")
+
+    subscription = LicenseKey(
+        key_value=generate_license_value("ETH-SUB"),
+        key_type="subscription",
+        label=payload.label or "Customer Subscription",
+        max_activations=max(1, payload.max_activations),
+        current_activations=0,
+        is_active=True,
+        expires_at=datetime.utcnow() + timedelta(days=max(1, payload.valid_days)),
+    )
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+    return subscription
