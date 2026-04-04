@@ -16,7 +16,8 @@ export default function Settings() {
   const [subscription, setSubscription] = useState(null)
   const [msg, setMsg] = useState(null)
   const [licenseMsg, setLicenseMsg] = useState(null)
-  const isAdmin = ['admin', 'superadmin'].includes(user?.role)
+  const canManageUsers = ['admin', 'superadmin'].includes(user?.role)
+  const canManageEmployeeKeys = ['admin', 'superadmin', 'manager'].includes(user?.role)
 
   const maskedSubscriptionKey = useMemo(() => {
     if (!subscription?.key_value) return '-'
@@ -25,11 +26,11 @@ export default function Settings() {
   }, [subscription])
 
   const loadUsers = () => {
-    if (isAdmin) authAPI.listUsers().then(r => setUsers(r.data)).catch(console.error)
+    if (canManageUsers) authAPI.listUsers().then(r => setUsers(r.data)).catch(console.error)
   }
 
   const loadLicenses = () => {
-    if (!isAdmin) return
+    if (!canManageEmployeeKeys) return
     licenseAPI.subscription().then(r => setSubscription(r.data)).catch(console.error)
     licenseAPI.listEmployeeKeys().then(r => setEmployeeLicenses(r.data)).catch(console.error)
   }
@@ -37,7 +38,7 @@ export default function Settings() {
   useEffect(() => {
     loadUsers()
     loadLicenses()
-  }, [isAdmin])
+  }, [canManageUsers, canManageEmployeeKeys])
 
   const createUser = async () => {
     if (!newUser.email || !newUser.password) {
@@ -130,6 +131,10 @@ export default function Settings() {
                 Expires: <strong>{subscription?.expires_at ? new Date(subscription.expires_at).toLocaleString() : '-'}</strong>
               </div>
               <div className="soft-note" style={{ marginBottom: 10 }}>
+                Employee seats: <strong>{subscription?.employees_used ?? 0}/{subscription?.employee_limit ?? 0}</strong>
+                {' '}({subscription?.employee_seats_remaining ?? 0} remaining)
+              </div>
+              <div className="soft-note" style={{ marginBottom: 10 }}>
                 Customer installation policy: employees must activate with a company enrollment code and an employee license key.
               </div>
               <div className="soft-note">
@@ -155,8 +160,9 @@ export default function Settings() {
           </div>
 
           <div>
-            {isAdmin ? (
+            {canManageEmployeeKeys ? (
               <>
+                {canManageUsers ? (
                 <div className="panel" style={{ padding: 22, marginBottom: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                     <Users size={18} color="#ffb347" />
@@ -187,6 +193,7 @@ export default function Settings() {
                   </div>
                   <button className="btn-primary" onClick={createUser} style={{ padding: '12px 16px' }}>Create Team Member</button>
                 </div>
+                ) : null}
 
                 <div className="panel" style={{ padding: 22, marginBottom: 18 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -248,6 +255,7 @@ export default function Settings() {
                   ))}
                 </div>
 
+                {canManageUsers ? (
                 <div className="panel data-table">
                   <div className="data-table-header" style={{ gridTemplateColumns: '1.3fr 1fr 0.8fr' }}>
                     <div>User</div>
@@ -267,6 +275,7 @@ export default function Settings() {
                     </div>
                   ))}
                 </div>
+                ) : null}
               </>
             ) : (
               <div className="panel" style={{ padding: 22 }}>

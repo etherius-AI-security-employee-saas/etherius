@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import BrandMark from './BrandMark'
 
 const NAV = [
-  { to: '/dashboard', icon: BarChart3, label: 'Overview' },
+  { to: '/', icon: BarChart3, label: 'Overview' },
   { to: '/alerts', icon: AlertTriangle, label: 'Alerts' },
   { to: '/endpoints', icon: Monitor, label: 'Endpoints' },
   { to: '/incidents', icon: Zap, label: 'Response' },
@@ -13,8 +13,16 @@ const NAV = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
+const CUSTOMER_NAV = [
+  { to: '/', icon: BarChart3, label: 'Overview' },
+  { to: '/alerts', icon: AlertTriangle, label: 'Alerts' },
+  { to: '/endpoints', icon: Monitor, label: 'Employees' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
+]
+
 export default function Sidebar() {
   const { user, logout } = useAuth()
+  const navItems = user?.role === 'manager' ? CUSTOMER_NAV : NAV
 
   return (
     <aside style={{
@@ -49,7 +57,7 @@ export default function Sidebar() {
       </div>
 
       <nav style={{ flex: 1, padding: '2px 10px 14px' }}>
-        {NAV.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}

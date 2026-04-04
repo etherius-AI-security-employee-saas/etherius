@@ -61,6 +61,7 @@ def _apply_lightweight_migrations():
         _add_column_if_missing(conn, "companies", "license_enforcement", "BOOLEAN DEFAULT 1")
 
         _add_column_if_missing(conn, "license_keys", "used_by_endpoint_id", "TEXT")
+        _add_column_if_missing(conn, "license_keys", "seat_limit", "INTEGER DEFAULT 10")
 
 def check_db():
     try:

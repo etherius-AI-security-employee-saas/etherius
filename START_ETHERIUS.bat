@@ -5,23 +5,37 @@ cd /d "%~dp0"
 echo Starting Etherius as one software...
 echo.
 
-for /f %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-NetTCPConnection -State Listen -LocalPort 8000 -ErrorAction SilentlyContinue | Measure-Object).Count"') do set PORT_OPEN=%%A
+if not exist "%~dp0backend\venv\Scripts\python.exe" (
+    echo [setup] Backend runtime not found. Please run Python setup once.
+    pause
+    exit /b 1
+)
 
-if "%PORT_OPEN%"=="0" (
-    echo [startup] Backend is not running. Launching backend service...
-    start "Etherius Backend Service" /min cmd /c "cd /d \"%~dp0backend\" && venv\Scripts\python.exe run_backend.py"
-    timeout /t 4 >nul
-    set PORT_OPEN=0
-    for /f %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-NetTCPConnection -State Listen -LocalPort 8000 -ErrorAction SilentlyContinue | Measure-Object).Count"') do set PORT_OPEN=%%A
-    if "%PORT_OPEN%"=="0" (
-        echo [startup] Silent launch failed. Starting visible backend window...
-        start "Etherius Backend" cmd /c "cd /d \"%~dp0\" && START_BACKEND.bat"
-    )
+netstat -ano | findstr ":8000" | findstr "LISTENING" >nul
+if errorlevel 1 (
+    echo [startup] Launching backend service...
+    start "Etherius Backend" /min cmd /k "cd /d \"%~dp0backend\" && venv\Scripts\python.exe run_backend.py"
     timeout /t 5 >nul
 ) else (
     echo [startup] Backend already running.
 )
 
+netstat -ano | findstr ":8000" | findstr "LISTENING" >nul
+if errorlevel 1 (
+    echo [startup] Minimized launch did not bind port 8000. Opening backend window...
+    start "Etherius Backend" cmd /k "cd /d \"%~dp0backend\" && venv\Scripts\python.exe run_backend.py"
+    timeout /t 5 >nul
+)
+
 start "" http://localhost:8000/dashboard
-python -m suite.app
+
+if exist "%~dp0backend\venv\Scripts\python.exe" (
+    "%~dp0backend\venv\Scripts\python.exe" -m suite.app
+) else (
+    if exist "%~dp0release\bin\EtheriusSuite.exe" (
+        start "" "%~dp0release\bin\EtheriusSuite.exe"
+    ) else (
+        python -m suite.app
+    )
+)
 pause

@@ -41,6 +41,7 @@ class LicenseOut(BaseModel):
     key_value: str
     key_type: str
     label: Optional[str] = None
+    seat_limit: Optional[int] = None
     is_active: bool
     max_activations: int
     current_activations: int
@@ -50,5 +51,6 @@ class LicenseOut(BaseModel):
 
 class SubscriptionLicenseCreate(BaseModel):
     label: Optional[str] = None
-    max_activations: int = 1
+    max_activations: int = 1  # how many companies can register with this key
+    employee_limit: int = 10  # number of employee devices allowed for this company
     valid_days: int = 365

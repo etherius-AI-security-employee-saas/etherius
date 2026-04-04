@@ -12,6 +12,7 @@ from app.models.audit_log import AuditLog
 from app.schemas.alert import AlertOut, AlertUpdate
 from app.schemas.endpoint import EndpointOut
 from app.security.dependencies import get_current_user
+from app.security.rbac import require_min_role
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
@@ -70,12 +71,14 @@ def endpoint_events(endpoint_id: str, limit: int = Query(50, le=200),
 
 @router.get("/blocked-ips")
 def blocked_ips(db: Session = Depends(get_db), u: User = Depends(get_current_user)):
+    require_min_role("admin")(u)
     ips = db.query(BlockedIP).filter(BlockedIP.company_id == u.company_id, BlockedIP.is_active == True).all()
     return [{"id":i.id,"ip":i.ip_address,"reason":i.reason,"created_at":i.created_at} for i in ips]
 
 @router.get("/audit-logs")
 def audit_logs(limit: int = Query(50, le=200),
                db: Session = Depends(get_db), u: User = Depends(get_current_user)):
+    require_min_role("admin")(u)
     logs = db.query(AuditLog).filter(AuditLog.company_id == u.company_id).order_by(desc(AuditLog.created_at)).limit(limit).all()
     return [{"id":l.id,"actor_id":l.actor_id,"action":l.action,
              "resource":l.resource,"details":l.details,"created_at":l.created_at} for l in logs]

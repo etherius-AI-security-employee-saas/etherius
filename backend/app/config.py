@@ -3,6 +3,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     APP_NAME: str = "Etherius"
     ENV: str = "development"
+    ENABLE_API_DOCS: bool = True
+    ENABLE_DEMO_SEED: bool = False
+    SEED_COMPANY_DATA_ON_REGISTER: bool = False
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:4173"
     DATABASE_URL: str = "sqlite:///./etherius.db"
     SECRET_KEY: str = "etherius_super_secret_key_change_in_production_2024"
     AGENT_SECRET_KEY: str = "etherius_agent_secret_key_change_in_production_2024"

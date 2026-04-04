@@ -8,6 +8,7 @@ from app.models.blocked_ip import BlockedIP
 from app.models.company import Company
 from app.models.endpoint import Endpoint
 from app.models.event import Event
+from app.models.license_key import LicenseKey
 from app.models.user import User
 from app.security.password import hash_password
 
@@ -164,30 +165,48 @@ def seed_company_data(db: Session, company: Company, admin_user: User) -> None:
     db.commit()
 
 
-def bootstrap_demo_environment(db: Session, company_name: str, admin_email: str, admin_password: str) -> User:
+def bootstrap_demo_environment(
+    db: Session,
+    company_name: str,
+    admin_email: str,
+    admin_password: str,
+    subscription_key: str | None = None,
+) -> User:
     admin_user = db.query(User).filter(User.email == admin_email).first()
-    if admin_user:
-        company = db.query(Company).filter(Company.id == admin_user.company_id).first()
-        if company:
-            seed_company_data(db, company, admin_user)
-        return admin_user
+    company = db.query(Company).filter(Company.id == admin_user.company_id).first() if admin_user else None
 
-    company = db.query(Company).filter(Company.name == company_name).first()
     if not company:
-        company = Company(name=company_name, domain="etheriusdemo.com")
-        db.add(company)
-        db.flush()
+        company = db.query(Company).filter(Company.name == company_name).first()
+        if not company:
+            company = Company(name=company_name, domain="etheriusdemo.com")
+            db.add(company)
+            db.flush()
 
-    admin_user = User(
-        company_id=company.id,
-        email=admin_email,
-        password_hash=hash_password(admin_password),
-        full_name="Demo Administrator",
-        role="admin",
-    )
-    db.add(admin_user)
-    db.commit()
-    db.refresh(admin_user)
+    if not admin_user:
+        admin_user = User(
+            company_id=company.id,
+            email=admin_email,
+            password_hash=hash_password(admin_password),
+            full_name="Demo Administrator",
+            role="admin",
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+
+    if subscription_key:
+        subscription = db.query(LicenseKey).filter(
+            LicenseKey.key_value == subscription_key,
+            LicenseKey.key_type == "subscription",
+        ).first()
+        if subscription and (not subscription.company_id or subscription.company_id == company.id):
+            subscription.company_id = company.id
+            subscription.current_activations = max(subscription.current_activations or 0, 1)
+            company.subscription_key = subscription.key_value
+            company.subscription_status = "active"
+            company.subscription_expires_at = subscription.expires_at
+            company.max_endpoints = max(1, subscription.seat_limit or company.max_endpoints or 10)
+            db.commit()
 
     seed_company_data(db, company, admin_user)
     return admin_user

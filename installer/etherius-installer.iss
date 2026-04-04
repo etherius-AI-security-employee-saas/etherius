@@ -17,6 +17,8 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+SetupIconFile=..\suite\assets\etherius-suite.ico
+UninstallDisplayIcon={app}\EtheriusSuite.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -30,10 +32,10 @@ Source: "..\release\bin\EtheriusShield.exe"; DestDir: "{app}"; Flags: ignorevers
 Source: "..\release\bin\EtheriusBackendService.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"
-Name: "{group}\Etherius Employee Shield"; Filename: "{app}\EtheriusShield.exe"
+Name: "{group}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"
+Name: "{group}\Etherius Employee Shield"; Filename: "{app}\EtheriusShield.exe"; IconFilename: "{app}\EtheriusShield.exe"
 Name: "{group}\Uninstall Etherius"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"; Tasks: desktopicon
+Name: "{autodesktop}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\EtheriusBackendService.exe"; Description: "Start Etherius backend service now"; Flags: postinstall nowait skipifsilent

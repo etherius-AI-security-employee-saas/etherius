@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from datetime import datetime
+from app.config import settings
 from app.database import get_db
 from app.models.company import Company
 from app.models.user import User
@@ -86,13 +87,14 @@ def register(data: CompanyRegister, db: Session = Depends(get_db)):
             subscription_key=subscription.key_value,
             subscription_status="active",
             subscription_expires_at=subscription.expires_at,
+            max_endpoints=max(1, subscription.seat_limit or 10),
         )
         db.add(company)
         db.flush()
         user = User(
             company_id=company.id, email=data.admin_email,
             password_hash=hash_password(data.admin_password),
-            full_name=data.admin_full_name, role="admin"
+            full_name=data.admin_full_name, role="manager"
         )
         db.add(user)
         db.flush()
@@ -103,7 +105,8 @@ def register(data: CompanyRegister, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
         db.refresh(company)
-        seed_company_data(db, company, user)
+        if settings.SEED_COMPANY_DATA_ON_REGISTER:
+            seed_company_data(db, company, user)
         return {"message": "Company registered", "company_id": company.id}
     except IntegrityError:
         db.rollback()
@@ -121,6 +124,8 @@ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
     if not user or not verify_password(data.password, user.password_hash):
         _record_failed_login(key)
         raise HTTPException(401, "Invalid credentials")
+    if user.role not in {"admin", "superadmin", "manager"}:
+        raise HTTPException(403, "Dashboard access is restricted to admin accounts")
     _clear_failed_login(key)
     user.last_login = datetime.utcnow(); db.commit()
     log_action(db, user.id, user.company_id, "LOGIN", "user", user.id)

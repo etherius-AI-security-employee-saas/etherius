@@ -36,18 +36,21 @@ Push-Location $root
 & "$backend\venv\Scripts\python.exe" -m PyInstaller `
     --noconfirm --clean --onefile --noconsole `
     --name EtheriusSuite `
+    --icon "suite\assets\etherius-suite.ico" `
     --add-data "suite\assets;suite\assets" `
     "suite\app.py"
 
 & "$backend\venv\Scripts\python.exe" -m PyInstaller `
     --noconfirm --clean --onefile --noconsole `
     --name EtheriusShield `
+    --icon "suite\assets\etherius-suite.ico" `
     --add-data "agent\assets;agent\assets" `
     "agent\ui\app.py"
 
 & "$backend\venv\Scripts\python.exe" -m PyInstaller `
     --noconfirm --clean --onefile --noconsole `
     --name EtheriusBackendService `
+    --icon "suite\assets\etherius-suite.ico" `
     --add-data "backend\app;app" `
     --add-data "dashboard\dist;dashboard\dist" `
     "backend\run_backend.py"

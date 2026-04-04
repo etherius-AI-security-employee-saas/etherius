@@ -1,6 +1,8 @@
 import axios from 'axios'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/'
+const routerBase = import.meta.env.VITE_ROUTER_BASENAME || (import.meta.env.PROD ? '/dashboard' : '')
+const loginPath = `${routerBase}/login`.replace(/\/{2,}/g, '/')
 
 const api = axios.create({ baseURL })
 
@@ -14,7 +16,7 @@ api.interceptors.response.use(r => r, err => {
   if (err.response?.status === 401) {
     localStorage.removeItem('etherius_token')
     localStorage.removeItem('etherius_user')
-    window.location.href = '/login'
+    window.location.href = loginPath
   }
   return Promise.reject(err)
 })

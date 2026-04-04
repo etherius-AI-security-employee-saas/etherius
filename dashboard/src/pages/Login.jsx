@@ -34,7 +34,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(form.email, form.password)
-      navigate('/dashboard')
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed')
     } finally {
@@ -56,7 +56,7 @@ export default function Login() {
         subscription_key: form.subscription_key,
       })
       await login(form.email, form.password)
-      navigate('/dashboard')
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed')
     } finally {

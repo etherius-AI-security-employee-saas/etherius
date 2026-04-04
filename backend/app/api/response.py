@@ -22,7 +22,7 @@ class IsolateReq(BaseModel):
 
 @router.post("/block-ip")
 def block_ip(data: BlockIPReq, db: Session = Depends(get_db), u: User = Depends(get_current_user)):
-    require_min_role("manager")(u)
+    require_min_role("admin")(u)
     r = do_block(db, u.company_id, data.ip_address, data.reason, u.id)
     log_action(db, u.id, u.company_id, "BLOCK_IP", "blocked_ip", r.id, data.ip_address)
     return {"message": f"IP {data.ip_address} blocked", "id": r.id}
@@ -46,7 +46,7 @@ def unisolate(data: IsolateReq, db: Session = Depends(get_db), u: User = Depends
 
 @router.delete("/unblock-ip/{ip_id}")
 def unblock_ip(ip_id: str, db: Session = Depends(get_db), u: User = Depends(get_current_user)):
-    require_min_role("manager")(u)
+    require_min_role("admin")(u)
     from app.models.blocked_ip import BlockedIP
     ip = db.query(BlockedIP).filter(BlockedIP.id == ip_id, BlockedIP.company_id == u.company_id).first()
     if not ip: raise HTTPException(404, "Not found")

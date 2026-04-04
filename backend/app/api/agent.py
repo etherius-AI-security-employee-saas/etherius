@@ -64,6 +64,12 @@ def enroll_endpoint(data: EndpointEnroll, db: Session = Depends(get_db)):
         )
         if not employee_license:
             raise HTTPException(400, "Invalid, expired, or exhausted employee license key")
+
+    if not existing:
+        current_count = db.query(Endpoint).filter(Endpoint.company_id == company_id).count()
+        allowed = int(company.max_endpoints or 0)
+        if allowed > 0 and current_count >= allowed:
+            raise HTTPException(403, f"Seat limit reached ({allowed}). Contact your provider for more employee licenses.")
     if existing:
         token = existing.agent_token or create_agent_token(existing.id, company_id)
         existing.agent_token = token

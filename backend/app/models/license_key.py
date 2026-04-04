@@ -14,6 +14,7 @@ class LicenseKey(Base):
     key_value = Column(String, nullable=False, unique=True, index=True)
     key_type = Column(String, nullable=False, default="employee")  # subscription / employee
     label = Column(String, nullable=True)
+    seat_limit = Column(Integer, default=10)  # subscription seat count (employees/devices)
     max_activations = Column(Integer, default=1)
     current_activations = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)

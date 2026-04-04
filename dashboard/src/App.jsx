@@ -10,8 +10,11 @@ import BlockedIPs from './pages/BlockedIPs'
 import AuditLog from './pages/AuditLog'
 import Settings from './pages/Settings'
 
+const routerBasename = import.meta.env.VITE_ROUTER_BASENAME || (import.meta.env.PROD ? '/dashboard' : '/')
+
 function Layout() {
   const { user, loading } = useAuth()
+  const canUsePrivilegedOps = ['admin', 'superadmin'].includes(user?.role)
 
   if (loading) {
     return (
@@ -56,14 +59,14 @@ function Layout() {
       <Sidebar />
       <main className="app-main">
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route index element={<Dashboard />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/endpoints" element={<Endpoints />} />
-          <Route path="/incidents" element={<Incidents />} />
-          <Route path="/blocked" element={<BlockedIPs />} />
-          <Route path="/audit" element={<AuditLog />} />
+          <Route path="/incidents" element={canUsePrivilegedOps ? <Incidents /> : <Navigate to="/" replace />} />
+          <Route path="/blocked" element={canUsePrivilegedOps ? <BlockedIPs /> : <Navigate to="/" replace />} />
+          <Route path="/audit" element={canUsePrivilegedOps ? <AuditLog /> : <Navigate to="/" replace />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
@@ -73,7 +76,7 @@ function Layout() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={routerBasename}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={<Layout />} />

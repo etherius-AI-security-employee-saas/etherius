@@ -25,6 +25,8 @@ class EtheriusSuiteApp:
         self._set_app_identity()
         self._configure_styles()
         self._build()
+        self._start_backend_service()
+        self.root.after(1200, lambda: self._open_dashboard_when_ready(attempt=0))
         self._refresh_health()
 
     def _set_app_identity(self):
@@ -137,8 +139,8 @@ class EtheriusSuiteApp:
         grid.pack(fill="x", padx=16, pady=(8, 14))
 
         self._tile(grid, "Start Full Platform", "Start backend then dashboard", self._start_full_suite, primary=True).grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
-        self._tile(grid, "Open Dashboard", "Manager control center", lambda: self._open_url("http://localhost:5173")).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
-        self._tile(grid, "Open Employee Shield", "Run desktop protection client", lambda: self._launch_batch("START_AGENT.bat")).grid(row=1, column=0, sticky="nsew", padx=6, pady=6)
+        self._tile(grid, "Open Dashboard", "Manager control center", lambda: self._open_url("http://localhost:8000/dashboard")).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
+        self._tile(grid, "Open Employee Shield", "Run desktop protection client", self._open_employee_shield).grid(row=1, column=0, sticky="nsew", padx=6, pady=6)
         self._tile(grid, "Open API Docs", "Swagger API reference", lambda: self._open_url("http://localhost:8000/docs")).grid(row=1, column=1, sticky="nsew", padx=6, pady=6)
 
         for col in range(2):
@@ -152,7 +154,7 @@ class EtheriusSuiteApp:
         body.pack(fill="x", padx=16, pady=(8, 14))
 
         self.health_items["Backend API"] = self._health_row(body, "Backend API", "localhost:8000")
-        self.health_items["Dashboard"] = self._health_row(body, "Dashboard", "localhost:5173")
+        self.health_items["Dashboard"] = self._health_row(body, "Dashboard", "localhost:8000/dashboard")
         self.health_items["API Docs"] = self._health_row(body, "Swagger", "localhost:8000/docs")
 
         actions = tk.Frame(body, bg="#0e1b2e")
@@ -184,8 +186,7 @@ class EtheriusSuiteApp:
 
         actions = tk.Frame(card, bg="#0e1b2e")
         actions.pack(fill="x", padx=16, pady=(10, 14))
-        ttk.Button(actions, text="Open Admin Playbook", command=lambda: self._open_file("ADMIN_PLAYBOOK.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
-        ttk.Button(actions, text="Open Quick Start", command=lambda: self._open_file("QUICK_START_ADMIN.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
+        ttk.Button(actions, text="Open Start Guide", command=lambda: self._open_file("TUTORIALS/START_HERE.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
 
     def _build_employee_panel(self, parent):
         card = self._card(parent, "Employee Workspace", "Installer-side deployment flow for customer devices.")
@@ -201,8 +202,8 @@ class EtheriusSuiteApp:
 
         actions = tk.Frame(card, bg="#0e1b2e")
         actions.pack(fill="x", padx=16, pady=(10, 14))
-        ttk.Button(actions, text="Open Employee Shield", command=lambda: self._launch_batch("START_AGENT.bat"), style="Etherius.Primary.TButton").pack(fill="x", pady=4)
-        ttk.Button(actions, text="Open Deployment Guide", command=lambda: self._open_file("CUSTOMER_DEPLOYMENT_GUIDE.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
+        ttk.Button(actions, text="Open Employee Shield", command=self._open_employee_shield, style="Etherius.Primary.TButton").pack(fill="x", pady=4)
+        ttk.Button(actions, text="Open Start Guide", command=lambda: self._open_file("TUTORIALS/START_HERE.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
 
     def _card(self, parent, title, subtitle):
         card = tk.Frame(parent, bg="#0e1b2e", highlightbackground="#224567", highlightthickness=1)
@@ -239,13 +240,48 @@ class EtheriusSuiteApp:
         return status
 
     def _start_full_suite(self):
-        self._launch_batch("START_BACKEND.bat")
-        self.root.after(2200, lambda: self._launch_batch("START_DASHBOARD.bat"))
+        self._start_backend_service()
+        self.root.after(2000, lambda: self._open_url("http://localhost:8000/dashboard"))
 
-    def _launch_batch(self, name):
-        path = ROOT / name
-        subprocess.Popen(["cmd", "/c", "start", "", str(path)], cwd=str(ROOT))
-        self._log(f"Launched: {name}")
+    def _start_backend_service(self):
+        if self._port_open("127.0.0.1", 8000):
+            self._log("Backend already running.")
+            return
+
+        backend_python = ROOT / "backend" / "venv" / "Scripts" / "python.exe"
+        if backend_python.exists():
+            subprocess.Popen(
+                [
+                    "cmd",
+                    "/c",
+                    "start",
+                    "",
+                    "/min",
+                    "cmd",
+                    "/k",
+                    f"cd /d \"{ROOT / 'backend'}\" && venv\\Scripts\\python.exe run_backend.py",
+                ],
+                cwd=str(ROOT),
+            )
+            self._log("Backend runtime launched from Python environment.")
+            return
+
+        backend_exe = ROOT / "release" / "bin" / "EtheriusBackendService.exe"
+        if backend_exe.exists():
+            subprocess.Popen([str(backend_exe)], cwd=str(ROOT))
+            self._log("Backend service executable launched.")
+            return
+
+        self._log("Backend runtime missing. Install backend dependencies first.")
+
+    def _open_employee_shield(self):
+        shield_exe = ROOT / "release" / "bin" / "EtheriusShield.exe"
+        if shield_exe.exists():
+            subprocess.Popen([str(shield_exe)], cwd=str(ROOT))
+            self._log("Opened employee shield executable.")
+            return
+        subprocess.Popen(["python", "-m", "agent.ui.app"], cwd=str(ROOT))
+        self._log("Opened employee shield.")
 
     def _open_file(self, name):
         path = ROOT / name
@@ -256,6 +292,15 @@ class EtheriusSuiteApp:
         webbrowser.open(url)
         self._log(f"Opened URL: {url}")
 
+    def _open_dashboard_when_ready(self, attempt=0):
+        if self._port_open("127.0.0.1", 8000):
+            self._open_url("http://localhost:8000/dashboard")
+            return
+        if attempt >= 15:
+            self._log("Backend startup is taking longer than expected.")
+            return
+        self.root.after(1000, lambda: self._open_dashboard_when_ready(attempt + 1))
+
     def _port_open(self, host, port, timeout=0.7):
         try:
             with socket.create_connection((host, port), timeout=timeout):
@@ -265,7 +310,7 @@ class EtheriusSuiteApp:
 
     def _refresh_health(self):
         backend_ok = self._port_open("127.0.0.1", 8000)
-        dashboard_ok = self._port_open("127.0.0.1", 5173)
+        dashboard_ok = self._port_open("127.0.0.1", 8000)
 
         self._set_health("Backend API", backend_ok)
         self._set_health("Dashboard", dashboard_ok)

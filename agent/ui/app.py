@@ -24,6 +24,7 @@ class AgentApp:
         self._build()
         self.load_config()
         self.populate_device_info()
+        self.root.after(400, self._auto_start_if_ready)
 
     def _set_app_identity(self):
         try:
@@ -196,6 +197,9 @@ class AgentApp:
         self.device_mac.set(info["mac_address"])
 
     def save_connection(self):
+        self.save_connection_with_options(notify=True)
+
+    def save_connection_with_options(self, notify=True):
         update_config({
             "company_code": self.company_code.get().strip(),
             "employee_key": self.employee_key.get().strip(),
@@ -204,7 +208,8 @@ class AgentApp:
             "endpoint_id": self.endpoint_id.get().strip(),
             "agent_token": self.agent_token.get().strip(),
         })
-        messagebox.showinfo("Etherius Shield", "Connection settings saved.")
+        if notify:
+            messagebox.showinfo("Etherius Shield", "Connection settings saved.")
 
     def apply_activation_code(self):
         code = self.activation_code.get().strip()
@@ -216,7 +221,7 @@ class AgentApp:
         self.backend_url.set(backend_url)
         self.endpoint_id.set(endpoint_id)
         self.agent_token.set(agent_token)
-        self.save_connection()
+        self.save_connection_with_options(notify=False)
 
     def enroll_this_device(self):
         code = self.company_code.get().strip()
@@ -240,11 +245,35 @@ class AgentApp:
             self.activation_code.set(data["activation_code"])
             self.apply_activation_code()
             self.append_feed("Device enrolled successfully with company code.")
+            self.start_agent(silent=True)
         except Exception as error:
             messagebox.showerror("Enrollment Failed", str(error))
 
-    def start_agent(self):
-        self.save_connection()
+    def _has_valid_connection_config(self):
+        endpoint_id = self.endpoint_id.get().strip()
+        agent_token = self.agent_token.get().strip()
+        backend_url = self.backend_url.get().strip()
+        placeholders = {"PASTE_YOUR_AGENT_TOKEN_HERE", "PASTE_YOUR_ENDPOINT_ID_HERE", ""}
+        if endpoint_id in placeholders or agent_token in placeholders:
+            return False
+        return bool(backend_url and endpoint_id and agent_token)
+
+    def _auto_start_if_ready(self):
+        if self._has_valid_connection_config() and not self.agent.running:
+            self.start_agent(silent=True)
+
+    def start_agent(self, silent=False):
+        if not self._has_valid_connection_config() and self.activation_code.get().strip():
+            self.apply_activation_code()
+        if not self._has_valid_connection_config():
+            if not silent:
+                messagebox.showerror(
+                    "Connection Required",
+                    "Enroll this device first, or paste a valid activation code before starting protection.",
+                )
+            self.append_feed("Protection not started. Missing enrollment/activation details.")
+            return
+        self.save_connection_with_options(notify=False)
         self.agent.start()
         self.append_feed("Protection engine started.")
 
