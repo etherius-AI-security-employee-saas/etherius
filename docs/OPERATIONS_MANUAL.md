@@ -31,27 +31,30 @@ Use `ceo/CEO_START_CONSOLE.bat` (provider-only):
 
 ## 3) Customer Admin Workflow
 
-1. Open customer dashboard URL.
+1. Install and open Etherius unified software (`EtheriusSuite.exe`).
 2. First-time setup:
+   - Go to `Admin Activation + Dashboard`
    - Register company
    - Enter subscription key from CEO
 3. Daily operations:
-   - Open `Employee Access` page
+   - Sign in in the same software
    - Generate employee keys (based on purchased seat quantity)
    - Share company code + employee key to each employee
    - Track endpoint status, risk, alerts, and login/logout activity
+   - Review employee AI threat scan events in dashboard alerts
 
 If the customer does not have a valid subscription key, registration is blocked.
 
 ## 4) Employee Workflow
 
-1. Install Etherius Shield.
+1. Install and open the same Etherius unified software (`EtheriusSuite.exe`).
 2. Enter:
    - company enrollment code
    - employee key
    - backend URL (default is cloud API)
-3. Enroll device.
-4. Protection starts and telemetry is sent to customer dashboard.
+3. Open `Employee Activation + Protection` tab.
+4. Enroll device and start protection.
+5. Telemetry is sent to company dashboard data.
 
 ## 5) What Is Enforced
 
@@ -61,6 +64,7 @@ If the customer does not have a valid subscription key, registration is blocked.
 4. Dashboard API auth required.
 5. CEO-only endpoints protected by master key.
 6. Inactive/expired customer subscription blocks dashboard and agent API access.
+7. Employee protection works in advisory mode by default (alerts/insights, no forced auto-block of business-safe activity).
 
 ## 6) Current Live Production URLs
 

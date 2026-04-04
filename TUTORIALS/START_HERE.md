@@ -15,19 +15,21 @@ Customer operations run on cloud domains. Customer admins do not need source cod
 4. Customer cannot register without this key
 
 ## Customer Admin Flow
-1. Open dashboard URL and click Register Company
-2. Enter subscription key from CEO
-3. Open `Employee Access` page and generate employee keys
-4. Share:
+1. Open `EtheriusSuite.exe`
+2. Go to `Admin Activation + Dashboard`
+3. Register company with subscription key from CEO
+4. Sign in and generate employee keys
+5. Share:
 - Company Enrollment Code
 - One employee key per employee
-5. Monitor endpoint status, alerts, logins, and logouts
+6. Monitor endpoint status, alerts, logins, and logouts
 
 ## Employee Flow
-1. Install `EtheriusShield.exe` from customer package
-2. Paste Company Enrollment Code + Employee Key
-3. Click `Enroll This Device`
-4. Shield starts protection and appears in dashboard
+1. Open the same `EtheriusSuite.exe`
+2. Go to `Employee Activation + Protection`
+3. Paste Company Enrollment Code + Employee Key
+4. Click `Enroll Employee Device` and then `Start Protection`
+5. Optional: run `Quick AI Threat Scan` or `Deep Corporate Risk Scan`
 
 ## Important Security Boundaries
 1. No subscription key = no customer registration/login usage

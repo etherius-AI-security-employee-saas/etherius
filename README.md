@@ -9,20 +9,20 @@ High-trust AI cybersecurity platform for employee endpoint protection, multi-ten
 ## Live Production Links
 
 1. Public Website: `https://etherius-security-site.vercel.app`
-2. Customer Dashboard: `https://etherius-security-dashboard.vercel.app`
+2. Customer Dashboard API Surface: `https://etherius-security-dashboard.vercel.app`
 3. Backend API: `https://etherius-security-api.vercel.app`
 4. API Health Check: `https://etherius-security-api.vercel.app/health`
 
 ## Platform Scope
 
-Etherius is not a single UI project. It is a complete security platform:
+Etherius is now shipped to customers as a single desktop software while still keeping a full platform backend:
 
 1. **Provider/CEO Control Plane**
    Subscription key issuance, seat licensing, and tenant provisioning.
-2. **Customer SOC Dashboard**
-   Threat visibility, endpoint monitoring, and operational workflows.
-3. **Employee Shield Agent**
-   Device enrollment, telemetry collection, heartbeat, and event submission.
+2. **Unified Customer Software**
+   One desktop app that includes admin activation/dashboard and employee activation/protection.
+3. **Protection Agent Runtime**
+   Telemetry collection, heartbeat, and event submission from enrolled endpoints.
 4. **Public Distribution Front Door**
    Branded website for software delivery and product communication.
 
@@ -33,8 +33,9 @@ Etherius is not a single UI project. It is a complete security platform:
 3. Employee key lifecycle (issue/revoke/activation limits).
 4. AI-assisted risk scoring and alert explanation.
 5. Role-aware surface separation (provider vs customer vs employee).
-6. Branded Windows binaries with taskbar identity.
-7. Public web + dashboard + API deployed as distinct internet domains.
+6. Branded Windows software with taskbar identity.
+7. Public web + API deployed as distinct internet domains.
+8. Advisory-first protection: AI detections alert managers without auto-blocking critical business workflows.
 
 ## Domain Wiring (Where Domains Are Needed)
 
@@ -42,7 +43,7 @@ Etherius is not a single UI project. It is a complete security platform:
 Used by prospects and customers to discover and download.
 
 ### 2) Dashboard domain
-Used by customer admins/security operators for daily operations.
+Used as backend dashboard API/web surface. Main customer operations are now in desktop software.
 
 ### 3) Backend API domain
 Used by:
@@ -57,13 +58,13 @@ Without backend domain, dashboard and agents cannot operate globally.
    FastAPI service, RBAC, tenant controls, licensing APIs, telemetry APIs.
 
 2. `dashboard/`  
-   React + Vite frontend for alerts, endpoints, response, and settings.
+   React + Vite dashboard surface (optional web access/API companion).
 
 3. `agent/`  
    Employee Shield desktop client and collectors.
 
 4. `suite/`  
-   Branded desktop control center for startup/ops.
+   Unified desktop product: admin activation + in-app dashboard + employee activation/protection.
 
 5. `website/`  
    Public high-visual landing and download site (Vercel deployed).
@@ -89,9 +90,18 @@ Without backend domain, dashboard and agents cannot operate globally.
 ## Deployment Status
 
 1. Public website deployed on Vercel.
-2. Dashboard deployed on Vercel.
+2. Dashboard surface deployed on Vercel (API companion).
 3. Backend API deployed on Vercel.
 4. Cross-domain CORS configured for dashboard + site.
+
+## One-Setup Rule
+
+Customer delivery is one setup and one app:
+
+1. Install `EtheriusSuite.exe` (single software).
+2. Customer manager activates company with subscription key.
+3. Employees use same software with employee activation key.
+4. No local backend start scripts are required for customer usage.
 
 ## Product Vision
 

@@ -28,16 +28,12 @@ Name: "desktopicon"; Description: "Create desktop icon"; GroupDescription: "Addi
 
 [Files]
 Source: "..\release\bin\EtheriusSuite.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\release\bin\EtheriusShield.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\release\bin\EtheriusBackendService.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\bin\agent_config.json"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"
-Name: "{group}\Etherius Employee Shield"; Filename: "{app}\EtheriusShield.exe"; IconFilename: "{app}\EtheriusShield.exe"
+Name: "{group}\Etherius Security"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"
 Name: "{group}\Uninstall Etherius"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"; Tasks: desktopicon
+Name: "{autodesktop}\Etherius Security"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\EtheriusBackendService.exe"; Description: "Start Etherius backend service now"; Flags: postinstall nowait skipifsilent
-Filename: "{app}\EtheriusSuite.exe"; Description: "Launch Etherius Control Center"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\EtheriusSuite.exe"; Description: "Launch Etherius Security"; Flags: postinstall nowait skipifsilent

@@ -91,6 +91,35 @@ def analyze_email(payload: Dict) -> Dict:
         flags.append("High-risk sender domain")
     return {"score": min(score, 100), "flags": flags}
 
+
+def analyze_threat_scan(payload: Dict) -> Dict:
+    score, flags = 0, []
+    suspicious = int(payload.get("suspicious_items_found", 0) or 0)
+    allowlisted = int(payload.get("safe_process_allowlist_hits", 0) or 0)
+    mode = str(payload.get("mode", "quick")).lower()
+
+    if suspicious >= 8:
+        score += 90
+        flags.append(f"High-volume suspicious artifacts in {mode} scan")
+    elif suspicious >= 4:
+        score += 70
+        flags.append(f"Multiple suspicious artifacts in {mode} scan")
+    elif suspicious >= 1:
+        score += 45
+        flags.append(f"Suspicious artifact identified in {mode} scan")
+    else:
+        score += 15
+        flags.append("No high-confidence malicious artifacts found")
+
+    if allowlisted >= 25:
+        score = max(score - 10, 0)
+        flags.append("Business-safe process allowlist applied")
+
+    if bool(payload.get("advisory_mode_only", False)):
+        flags.append("Advisory mode active (no automatic blocking)")
+
+    return {"score": min(score, 100), "flags": flags}
+
 def analyze_event(event_type: str, payload: Dict) -> Dict:
     fn = {
         "process": analyze_process,
@@ -101,6 +130,7 @@ def analyze_event(event_type: str, payload: Dict) -> Dict:
         "employee_logout": analyze_login,
         "file": analyze_file,
         "email": analyze_email,
+        "threat_scan": analyze_threat_scan,
     }
     result = fn.get(event_type, lambda p: {"score":0,"flags":[]})(payload)
     result["category"] = event_type
