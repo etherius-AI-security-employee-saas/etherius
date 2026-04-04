@@ -39,6 +39,15 @@ build/
 release/
 *.spec
 
+# Private operations / customer delivery assets
+CUSTOMER_SETUP_ETHERIUS/
+TUTORIALS/
+START_*.bat
+*PLAYBOOK*.md
+PUBLISH_NOW.md
+VERCEL_DEPLOYMENT.md
+backend/start_backend_silent.vbs
+
 # OS / editor
 .DS_Store
 Thumbs.db
