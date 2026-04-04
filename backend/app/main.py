@@ -1,21 +1,25 @@
-from fastapi import FastAPI, Request
+from urllib.parse import quote_plus
+
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 
 from app.api import agent, auth, dashboard, licenses, response
 from app.config import settings
 from app.security.licenses import ensure_default_subscription_key
 
-API_DOCS_ENABLED = settings.ENABLE_API_DOCS and settings.ENV == "development"
-WEB_DASHBOARD_ENABLED = settings.ENABLE_WEB_DASHBOARD
+API_DOCS_ENABLED = settings.ENABLE_API_DOCS
 ALLOWED_ORIGINS = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 
 app = FastAPI(
     title="Etherius",
     description="Enterprise AI Cybersecurity Platform",
     version="1.0.0",
-    docs_url="/docs" if API_DOCS_ENABLED else None,
-    redoc_url="/redoc" if API_DOCS_ENABLED else None,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 app.add_middleware(
@@ -39,15 +43,15 @@ async def apply_security_headers(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
-app.include_router(auth.router)
-app.include_router(agent.router)
-app.include_router(dashboard.router)
-app.include_router(licenses.router)
-app.include_router(response.router)
+
+def _authorize_ceo(x_ceo_key: str = "", token: str = ""):
+    expected = str(settings.CEO_MASTER_KEY or "").strip()
+    provided = str(x_ceo_key or token or "").strip()
+    if not expected or provided != expected:
+        raise HTTPException(status_code=401, detail="CEO authorization required")
 
 
-@app.get("/health", tags=["Health"])
-def health():
+def _health_payload():
     from app.database import check_db
 
     db_ok = check_db()
@@ -59,13 +63,73 @@ def health():
     }
 
 
+def _schema():
+    return get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+
+app.include_router(auth.router)
+app.include_router(agent.router)
+app.include_router(dashboard.router)
+app.include_router(licenses.router)
+app.include_router(response.router)
+
+
 @app.get("/", include_in_schema=False)
 def root():
-    if WEB_DASHBOARD_ENABLED:
-        return RedirectResponse(url="/dashboard")
-    if API_DOCS_ENABLED:
-        return RedirectResponse(url="/docs")
-    return RedirectResponse(url="/health")
+    return {
+        "service": settings.APP_NAME,
+        "message": "Private API surface. CEO authorization is required for health and API docs.",
+    }
+
+
+@app.get("/health", include_in_schema=False)
+def health_private(
+    x_ceo_key: str = Header(default=""),
+    token: str = Query(default=""),
+):
+    _authorize_ceo(x_ceo_key=x_ceo_key, token=token)
+    return _health_payload()
+
+
+@app.get("/api/ceo/health", tags=["CEO"])
+def ceo_health(
+    x_ceo_key: str = Header(default=""),
+    token: str = Query(default=""),
+):
+    _authorize_ceo(x_ceo_key=x_ceo_key, token=token)
+    return _health_payload()
+
+
+@app.get("/api/ceo/openapi.json", include_in_schema=False)
+def ceo_openapi(
+    x_ceo_key: str = Header(default=""),
+    token: str = Query(default=""),
+):
+    if not API_DOCS_ENABLED:
+        raise HTTPException(status_code=404, detail="CEO Swagger is disabled")
+    _authorize_ceo(x_ceo_key=x_ceo_key, token=token)
+    return JSONResponse(_schema())
+
+
+@app.get("/api/ceo/swagger", include_in_schema=False)
+def ceo_swagger(
+    x_ceo_key: str = Header(default=""),
+    token: str = Query(default=""),
+):
+    if not API_DOCS_ENABLED:
+        raise HTTPException(status_code=404, detail="CEO Swagger is disabled")
+    _authorize_ceo(x_ceo_key=x_ceo_key, token=token)
+    effective_token = token or x_ceo_key
+    encoded = quote_plus(effective_token)
+    return get_swagger_ui_html(
+        openapi_url=f"/api/ceo/openapi.json?token={encoded}",
+        title="Etherius CEO Swagger",
+    )
 
 
 @app.on_event("startup")
@@ -102,4 +166,4 @@ def startup():
             db.close()
     print(f"[Etherius] Backend running | ENV={settings.ENV}")
     if API_DOCS_ENABLED:
-        print("[Etherius] API docs at http://localhost:8000/docs")
+        print("[Etherius] CEO Swagger route: /api/ceo/swagger (CEO authorization required)")

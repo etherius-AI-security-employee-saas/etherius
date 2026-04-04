@@ -1,29 +1,60 @@
 # Etherius
 
-Enterprise endpoint security suite with one desktop software for manager and employee roles.
+Etherius is an enterprise-grade cyber defense platform built for organizations that need strict control, premium UX, and serious operational depth in one product.
 
-[Website](https://etherius-security-site.vercel.app)  
-[API Health](https://etherius-security-api.vercel.app/health)
+## Why Etherius Is Different
 
-## Clean Structure
+1. One installer, dual-role intelligence:
+   - same software for manager and employee
+   - role boundaries enforced in-app by license and permissions
+2. CEO-driven commercial control:
+   - issue subscription keys with exact employee seat count
+   - control activation, validity, and scaling from provider side
+3. Real security telemetry loop:
+   - endpoint activity flows to manager dashboard
+   - login/logout behavior, risk scoring, alerts, and scan intelligence
+4. Enterprise-safe protection model:
+   - AI-assisted detection and escalation
+   - advisory-first behavior to reduce business disruption
 
-1. `suite/` unified desktop app code
-2. `backend/` licensing + telemetry API
-3. `ceo/` provider-only console
-4. `website/` public download site
-5. `installer/` setup builder
+## Product Architecture
 
-## Setup-Only Delivery
+1. `suite/`
+   Unified desktop product (manager activation, manager dashboard, employee protection mode).
+2. `backend/`
+   Private API for licensing, authentication, telemetry, and security workflows.
+3. `ceo/`
+   Provider-only control console for subscription issuance and customer fleet oversight.
+4. `website/`
+   Premium public distribution site that ships setup-only delivery.
+5. `installer/`
+   Setup build pipeline for production deployment.
+
+## Security Boundary Model
+
+1. CEO ownership boundary:
+   - CEO master key controls private API surfaces and platform-level operations.
+2. Customer manager boundary:
+   - manager can control only their own employee fleet.
+3. Employee boundary:
+   - employee cannot access manager controls.
+4. Tenant boundary:
+   - strict company separation across telemetry and dashboard data.
+
+## Setup-Only Customer Delivery
 
 1. Build setup:
    `powershell -ExecutionPolicy Bypass -File installer\build_release.ps1`
 2. Final installer:
    `release\installer\Etherius-Setup.exe`
-3. Local clean customer handoff folder:
-   `SETUP_FOLDER` (ignored from git, setup file only)
+3. Setup-only handoff folder:
+   `SETUP_FOLDER` (ignored from git)
 
-Customers should receive only `Etherius-Setup.exe`, not source code.
+Customers should receive only installer output, never source code.
 
-## CEO Docs
+## CEO Documentation
 
-Use `CEO_CONTROL_README.md` or `ceo/README.md`.
+1. `CEO_CONTROL_README.md`
+2. `ceo/README.md`
+
+Etherius is engineered to feel premium on the surface while operating like a disciplined security platform underneath.
