@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+venv/
+backend/venv/
+agent/venv/
+suite/venv/
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+!**/.env.example
+backend/.env
+agent/.env
+dashboard/.env
+
+# Local databases and logs
+*.db
+backend/*.db
+*.log
+*.out.log
+*.err.log
+
+# Node
+node_modules/
+dashboard/node_modules/
+
+# Build and cache
+dist/
+dashboard/dist/
+.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

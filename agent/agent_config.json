@@ -1,0 +1,11 @@
+{
+  "backend_url": "http://localhost:8000",
+  "company_code": "",
+  "employee_key": "",
+  "activation_code": "",
+  "agent_token": "PASTE_YOUR_AGENT_TOKEN_HERE",
+  "endpoint_id": "PASTE_YOUR_ENDPOINT_ID_HERE",
+  "heartbeat_interval": 30,
+  "event_batch_interval": 10,
+  "version": "1.0.0"
+}
