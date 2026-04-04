@@ -23,3 +23,11 @@ Run:
 ## Required
 
 Enter your `CEO Master Key` in the console before issuing keys or loading customers.
+
+## Release Safety Check
+
+Run:
+
+`VERIFY_RELEASE_SIGNATURE.ps1`
+
+Only distribute installer builds when signature status is `Valid`.

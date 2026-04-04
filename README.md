@@ -58,3 +58,22 @@ Customers should receive only installer output, never source code.
 2. `ceo/README.md`
 
 Etherius is engineered to feel premium on the surface while operating like a disciplined security platform underneath.
+
+## Release Trust (Important)
+
+To avoid Windows SmartScreen "Unknown Publisher" warnings, production releases must be code signed.
+
+Supported build-time signing options:
+
+1. Certificate in PFX file:
+   - `ETHERIUS_SIGN_PFX_PATH`
+   - `ETHERIUS_SIGN_PFX_PASSWORD`
+2. Certificate in Windows cert store:
+   - `ETHERIUS_SIGN_CERT_SHA1`
+3. Optional timestamp override:
+   - `ETHERIUS_SIGN_TIMESTAMP_URL`
+
+Build script will sign both:
+
+1. `release/bin/EtheriusSuite.exe`
+2. `release/installer/Etherius-Setup.exe`

@@ -17,6 +17,14 @@ Run:
 5. Access private CEO API routes:
    - `/api/ceo/health`
    - `/api/ceo/swagger` (when `ENABLE_API_DOCS=true`)
+6. Approve signed production releases only (avoid distributing unsigned installer builds).
+
+## Legal Trust Baseline for Customer Downloads
+
+1. Purchase an OV or EV code-signing certificate from a trusted CA.
+2. Configure signing environment variables before release build.
+3. Build setup with `installer/build_release.ps1`.
+4. Verify `Get-AuthenticodeSignature release\installer\Etherius-Setup.exe` returns `Valid`.
 
 ## What CEO Shares to Customer
 

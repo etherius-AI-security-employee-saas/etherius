@@ -2,12 +2,20 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Etherius"
 #define MyAppExeName "EtheriusSuite.exe"
+#define MyAppURL "https://etherius-security-site.vercel.app"
 
 [Setup]
 AppId={{ACCB63E3-0D7E-4FCB-A934-DB26ABAF0AA1}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=Enterprise Endpoint Security Installer
+VersionInfoVersion={#MyAppVersion}
+VersionInfoProductName={#MyAppName}
 DefaultDirName={autopf}\Etherius
 DefaultGroupName=Etherius
 DisableProgramGroupPage=yes
