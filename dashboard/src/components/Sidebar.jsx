@@ -26,19 +26,20 @@ export default function Sidebar() {
 
   return (
     <aside style={{
-      width: 230,
+      width: 246,
       minHeight: '100vh',
-      background: 'linear-gradient(180deg, rgba(10, 22, 39, 0.98), rgba(5, 11, 20, 0.98))',
-      borderRight: '1px solid rgba(100, 181, 246, 0.12)',
+      background: 'linear-gradient(180deg, rgba(13, 12, 33, 0.96), rgba(6, 6, 16, 0.98))',
+      borderRight: '1px solid rgba(153, 117, 255, 0.26)',
       display: 'flex',
       flexDirection: 'column',
       position: 'fixed',
       top: 0,
       left: 0,
       zIndex: 100,
-      backdropFilter: 'blur(12px)',
+      backdropFilter: 'blur(18px)',
+      boxShadow: 'inset -1px 0 0 rgba(255,255,255,0.03), 16px 0 42px rgba(3, 2, 10, 0.45)',
     }}>
-      <div style={{ padding: '26px 18px 18px', borderBottom: '1px solid rgba(100, 181, 246, 0.08)' }}>
+      <div style={{ padding: '26px 18px 18px', borderBottom: '1px solid rgba(153, 117, 255, 0.14)' }}>
         <BrandMark compact />
       </div>
 
@@ -50,7 +51,7 @@ export default function Sidebar() {
           <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user?.full_name || user?.email}
           </div>
-          <div style={{ color: 'var(--accent)', fontSize: 11, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <div style={{ color: 'var(--accent-2)', fontSize: 11, marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.16em' }}>
             {user?.role}
           </div>
         </div>
@@ -70,8 +71,8 @@ export default function Sidebar() {
               marginBottom: 6,
               textDecoration: 'none',
               color: isActive ? 'var(--text)' : 'var(--muted)',
-              background: isActive ? 'linear-gradient(90deg, rgba(31, 143, 255, 0.18), rgba(0, 201, 184, 0.08))' : 'transparent',
-              border: isActive ? '1px solid rgba(92, 200, 255, 0.22)' : '1px solid transparent',
+              background: isActive ? 'linear-gradient(90deg, rgba(154, 111, 255, 0.28), rgba(75, 227, 255, 0.12))' : 'transparent',
+              border: isActive ? '1px solid rgba(162, 126, 255, 0.4)' : '1px solid transparent',
               fontWeight: isActive ? 700 : 500,
               boxShadow: isActive ? 'inset 0 0 0 1px rgba(255,255,255,0.02)' : 'none',
             })}
@@ -82,7 +83,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div style={{ padding: 14, borderTop: '1px solid rgba(100, 181, 246, 0.08)' }}>
+      <div style={{ padding: 14, borderTop: '1px solid rgba(153, 117, 255, 0.14)' }}>
         <button
           onClick={logout}
           className="btn-secondary"

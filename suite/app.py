@@ -1,7 +1,9 @@
 import ctypes
-import socket
+import os
 import subprocess
 import tkinter as tk
+import urllib.error
+import urllib.request
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -9,24 +11,34 @@ from tkinter import ttk
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "suite" / "assets"
+CLOUD_DASHBOARD_URL = os.getenv("ETHERIUS_DASHBOARD_URL", "https://etherius-security-dashboard.vercel.app")
+CLOUD_API_HEALTH_URL = os.getenv("ETHERIUS_API_HEALTH_URL", "https://etherius-security-api.vercel.app/health")
+LOCAL_DASHBOARD_URL = "http://127.0.0.1:8000/dashboard"
+LOCAL_API_HEALTH_URL = "http://127.0.0.1:8000/health"
 
 
 class EtheriusSuiteApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Etherius Command Suite")
-        self.root.geometry("1320x860")
+        self.root.geometry("1360x880")
         self.root.minsize(1220, 780)
-        self.root.configure(bg="#050d18")
+        self.root.configure(bg="#070612")
         self.icon_image = None
         self.health_items = {}
         self.log_widget = None
+        self.use_local_backend = os.getenv("ETHERIUS_LOCAL_BACKEND", "").strip() == "1"
+        self.dashboard_url = LOCAL_DASHBOARD_URL if self.use_local_backend else CLOUD_DASHBOARD_URL
+        self.health_url = LOCAL_API_HEALTH_URL if self.use_local_backend else CLOUD_API_HEALTH_URL
 
         self._set_app_identity()
         self._configure_styles()
         self._build()
-        self._start_backend_service()
-        self.root.after(1200, lambda: self._open_dashboard_when_ready(attempt=0))
+        if self.use_local_backend:
+            self._start_backend_service()
+            self.root.after(1200, lambda: self._open_dashboard_when_ready(attempt=0))
+        else:
+            self._open_url(self.dashboard_url)
         self._refresh_health()
 
     def _set_app_identity(self):
@@ -62,34 +74,34 @@ class EtheriusSuiteApp:
             padding=(16, 12),
             font=("Segoe UI", 10, "bold"),
             foreground="#ffffff",
-            background="#1884ff",
+            background="#8d58ff",
             borderwidth=0,
         )
-        style.map("Etherius.Primary.TButton", background=[("active", "#2b91ff"), ("pressed", "#1268cb")])
+        style.map("Etherius.Primary.TButton", background=[("active", "#9f6bff"), ("pressed", "#7946e6")])
 
         style.configure(
             "Etherius.Secondary.TButton",
             padding=(16, 12),
             font=("Segoe UI", 10, "bold"),
-            foreground="#daebff",
-            background="#11233a",
+            foreground="#ece2ff",
+            background="#1a1635",
             borderwidth=0,
         )
-        style.map("Etherius.Secondary.TButton", background=[("active", "#17314f"), ("pressed", "#0d1f34")])
+        style.map("Etherius.Secondary.TButton", background=[("active", "#241e4a"), ("pressed", "#151133")])
 
     def _build(self):
-        shell = tk.Frame(self.root, bg="#050d18")
+        shell = tk.Frame(self.root, bg="#070612")
         shell.pack(fill="both", expand=True, padx=24, pady=20)
 
         self._build_hero(shell)
 
-        body = tk.Frame(shell, bg="#050d18")
+        body = tk.Frame(shell, bg="#070612")
         body.pack(fill="both", expand=True, pady=(12, 0))
 
-        left = tk.Frame(body, bg="#050d18")
+        left = tk.Frame(body, bg="#070612")
         left.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
-        right = tk.Frame(body, bg="#050d18", width=430)
+        right = tk.Frame(body, bg="#070612", width=430)
         right.pack(side="right", fill="y")
         right.pack_propagate(False)
 
@@ -101,63 +113,63 @@ class EtheriusSuiteApp:
         self._build_employee_panel(right)
 
     def _build_hero(self, parent):
-        card = tk.Frame(parent, bg="#0a1728", highlightbackground="#1e3d60", highlightthickness=1)
+        card = tk.Frame(parent, bg="#141028", highlightbackground="#5d46aa", highlightthickness=1)
         card.pack(fill="x")
 
-        row = tk.Frame(card, bg="#0a1728")
+        row = tk.Frame(card, bg="#141028")
         row.pack(fill="x", padx=24, pady=20)
 
-        mark = tk.Canvas(row, width=92, height=92, bg="#0a1728", highlightthickness=0)
+        mark = tk.Canvas(row, width=92, height=92, bg="#141028", highlightthickness=0)
         mark.pack(side="left", padx=(0, 16))
-        mark.create_oval(5, 5, 87, 87, fill="#102844", outline="#4d86bf", width=3)
-        mark.create_text(46, 42, text="e", fill="#f0e8e1", font=("Georgia", 40, "bold"))
-        mark.create_arc(24, 54, 70, 80, start=198, extent=140, style="arc", outline="#d9cbc0", width=3)
+        mark.create_oval(5, 5, 87, 87, fill="#1a1840", outline="#9273ff", width=3)
+        mark.create_oval(20, 20, 72, 72, fill="#0f0f24", outline="#4ddfff", width=2)
+        mark.create_text(46, 45, text="e", fill="#f5f0ff", font=("Rajdhani", 38, "bold"))
 
-        text_col = tk.Frame(row, bg="#0a1728")
+        text_col = tk.Frame(row, bg="#141028")
         text_col.pack(side="left", fill="both", expand=True)
 
-        tk.Label(text_col, text="etherius", fg="#f0e8e1", bg="#0a1728", font=("Georgia", 34, "bold")).pack(anchor="w")
+        tk.Label(text_col, text="etherius", fg="#f6f2ff", bg="#141028", font=("Rajdhani", 34, "bold")).pack(anchor="w")
         tk.Label(
             text_col,
             text="Professional security suite for managed endpoint protection, license-controlled enrollment, and real-time operations.",
-            fg="#a9c6e5",
-            bg="#0a1728",
+            fg="#c2b7e5",
+            bg="#141028",
             font=("Segoe UI", 11),
         ).pack(anchor="w", pady=(6, 0))
 
-        badge_row = tk.Frame(text_col, bg="#0a1728")
+        badge_row = tk.Frame(text_col, bg="#141028")
         badge_row.pack(anchor="w", pady=(12, 0))
-        self._badge(badge_row, "Admin Subscription", "#16311f", "#b8f3c8").pack(side="left", padx=(0, 8))
-        self._badge(badge_row, "Employee License Keys", "#2e2312", "#ffdcae").pack(side="left", padx=(0, 8))
-        self._badge(badge_row, "Taskbar Branded App", "#152a40", "#beddff").pack(side="left")
+        self._badge(badge_row, "Admin Subscription", "#211a43", "#d7c9ff").pack(side="left", padx=(0, 8))
+        self._badge(badge_row, "Employee License Keys", "#132a3d", "#b8f2ff").pack(side="left", padx=(0, 8))
+        self._badge(badge_row, "Taskbar Branded App", "#2e153e", "#ffcff0").pack(side="left")
 
     def _build_launch_panel(self, parent):
-        card = self._card(parent, "Launch Center", "Start and open the right part of Etherius in one click.")
+        card = self._card(parent, "Launch Center", "Open customer dashboard and protection workspace in one click.")
         card.pack(fill="x", pady=(0, 10))
 
-        grid = tk.Frame(card, bg="#0e1b2e")
+        grid = tk.Frame(card, bg="#141028")
         grid.pack(fill="x", padx=16, pady=(8, 14))
 
-        self._tile(grid, "Start Full Platform", "Start backend then dashboard", self._start_full_suite, primary=True).grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
-        self._tile(grid, "Open Dashboard", "Manager control center", lambda: self._open_url("http://localhost:8000/dashboard")).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
+        self._tile(grid, "Start Full Platform", "Open dashboard and ready all customer controls", self._start_full_suite, primary=True).grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+        self._tile(grid, "Open Dashboard", "Customer admin command center", lambda: self._open_url(self.dashboard_url)).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
         self._tile(grid, "Open Employee Shield", "Run desktop protection client", self._open_employee_shield).grid(row=1, column=0, sticky="nsew", padx=6, pady=6)
-        self._tile(grid, "Open API Docs", "Swagger API reference", lambda: self._open_url("http://localhost:8000/docs")).grid(row=1, column=1, sticky="nsew", padx=6, pady=6)
+        self._tile(grid, "Open API Health", "Live backend status endpoint", lambda: self._open_url(self.health_url)).grid(row=1, column=1, sticky="nsew", padx=6, pady=6)
 
         for col in range(2):
             grid.grid_columnconfigure(col, weight=1)
 
     def _build_health_panel(self, parent):
-        card = self._card(parent, "Platform Health", "Live status of local Etherius services.")
+        card = self._card(parent, "Platform Health", "Live status of dashboard and API availability.")
         card.pack(fill="x", pady=(0, 10))
 
-        body = tk.Frame(card, bg="#0e1b2e")
+        body = tk.Frame(card, bg="#141028")
         body.pack(fill="x", padx=16, pady=(8, 14))
 
-        self.health_items["Backend API"] = self._health_row(body, "Backend API", "localhost:8000")
-        self.health_items["Dashboard"] = self._health_row(body, "Dashboard", "localhost:8000/dashboard")
-        self.health_items["API Docs"] = self._health_row(body, "Swagger", "localhost:8000/docs")
+        self.health_items["Backend API"] = self._health_row(body, "Backend API", self.health_url)
+        self.health_items["Dashboard"] = self._health_row(body, "Dashboard", self.dashboard_url)
+        self.health_items["API Docs"] = self._health_row(body, "Shield Enrollment", f"{self.health_url.replace('/health', '')}/api/agent/enroll")
 
-        actions = tk.Frame(body, bg="#0e1b2e")
+        actions = tk.Frame(body, bg="#141028")
         actions.pack(fill="x", pady=(8, 0))
         ttk.Button(actions, text="Refresh Status", command=self._refresh_health, style="Etherius.Secondary.TButton").pack(side="left")
 
@@ -165,26 +177,26 @@ class EtheriusSuiteApp:
         card = self._card(parent, "Operations Feed", "Recent launcher activity for your local environment.")
         card.pack(fill="both", expand=True)
 
-        body = tk.Frame(card, bg="#0e1b2e")
+        body = tk.Frame(card, bg="#141028")
         body.pack(fill="both", expand=True, padx=16, pady=(8, 14))
 
-        self.log_widget = tk.Text(body, height=10, bg="#07111d", fg="#d8e9fb", relief="flat", font=("Consolas", 10), insertbackground="#d8e9fb")
+        self.log_widget = tk.Text(body, height=10, bg="#0b0920", fg="#e7deff", relief="flat", font=("Consolas", 10), insertbackground="#e7deff")
         self.log_widget.pack(fill="both", expand=True)
-        self._log("Etherius Command Suite is ready.")
+        self._log(f"Etherius Command Suite is ready ({'local' if self.use_local_backend else 'cloud'} mode).")
 
     def _build_admin_panel(self, parent):
         card = self._card(parent, "Admin Workspace", "Subscription owner controls and manager workflow.")
         card.pack(fill="x", pady=(0, 10))
 
         for step in [
-            "1) Start backend and dashboard from Launch Center.",
+            "1) Open customer dashboard from Launch Center.",
             "2) Register/login with a valid subscription key.",
             "3) Generate employee license keys in Settings.",
             "4) Share enrollment code + employee key with staff.",
         ]:
             self._bullet(card, step)
 
-        actions = tk.Frame(card, bg="#0e1b2e")
+        actions = tk.Frame(card, bg="#141028")
         actions.pack(fill="x", padx=16, pady=(10, 14))
         ttk.Button(actions, text="Open Start Guide", command=lambda: self._open_file("TUTORIALS/START_HERE.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
 
@@ -200,48 +212,51 @@ class EtheriusSuiteApp:
         ]:
             self._bullet(card, step)
 
-        actions = tk.Frame(card, bg="#0e1b2e")
+        actions = tk.Frame(card, bg="#141028")
         actions.pack(fill="x", padx=16, pady=(10, 14))
         ttk.Button(actions, text="Open Employee Shield", command=self._open_employee_shield, style="Etherius.Primary.TButton").pack(fill="x", pady=4)
         ttk.Button(actions, text="Open Start Guide", command=lambda: self._open_file("TUTORIALS/START_HERE.md"), style="Etherius.Secondary.TButton").pack(fill="x", pady=4)
 
     def _card(self, parent, title, subtitle):
-        card = tk.Frame(parent, bg="#0e1b2e", highlightbackground="#224567", highlightthickness=1)
-        tk.Label(card, text=title, fg="#ecf5ff", bg="#0e1b2e", font=("Segoe UI", 16, "bold")).pack(anchor="w", padx=16, pady=(14, 4))
-        tk.Label(card, text=subtitle, fg="#8fb2d1", bg="#0e1b2e", font=("Segoe UI", 10), wraplength=640, justify="left").pack(anchor="w", padx=16)
+        card = tk.Frame(parent, bg="#141028", highlightbackground="#524197", highlightthickness=1)
+        tk.Label(card, text=title, fg="#f4f0ff", bg="#141028", font=("Segoe UI", 16, "bold")).pack(anchor="w", padx=16, pady=(14, 4))
+        tk.Label(card, text=subtitle, fg="#b6a9dd", bg="#141028", font=("Segoe UI", 10), wraplength=640, justify="left").pack(anchor="w", padx=16)
         return card
 
     def _badge(self, parent, text, bg, fg):
         return tk.Label(parent, text=text, bg=bg, fg=fg, font=("Segoe UI", 9, "bold"), padx=10, pady=5)
 
     def _tile(self, parent, title, text, command, primary=False):
-        bg = "#173451" if primary else "#13263c"
-        tile = tk.Frame(parent, bg=bg, highlightbackground="#2b577e", highlightthickness=1)
+        bg = "#242050" if primary else "#171436"
+        tile = tk.Frame(parent, bg=bg, highlightbackground="#5a48a0", highlightthickness=1)
         tk.Label(tile, text=title, fg="#ffffff", bg=bg, font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=14, pady=(14, 6))
-        tk.Label(tile, text=text, fg="#c9ddf2", bg=bg, font=("Segoe UI", 9)).pack(anchor="w", padx=14)
+        tk.Label(tile, text=text, fg="#d4c9f2", bg=bg, font=("Segoe UI", 9)).pack(anchor="w", padx=14)
         ttk.Button(tile, text="Open", command=command, style="Etherius.Primary.TButton" if primary else "Etherius.Secondary.TButton").pack(anchor="w", padx=14, pady=14)
         return tile
 
     def _bullet(self, parent, text):
-        row = tk.Frame(parent, bg="#0e1b2e")
+        row = tk.Frame(parent, bg="#141028")
         row.pack(fill="x", padx=16, pady=(10, 0))
-        dot = tk.Canvas(row, width=14, height=14, bg="#0e1b2e", highlightthickness=0)
+        dot = tk.Canvas(row, width=14, height=14, bg="#141028", highlightthickness=0)
         dot.pack(side="left", padx=(0, 8), pady=(3, 0))
-        dot.create_oval(3, 3, 11, 11, fill="#63a8e8", outline="")
-        tk.Label(row, text=text, fg="#d5e6f8", bg="#0e1b2e", font=("Segoe UI", 10), wraplength=360, justify="left").pack(side="left", fill="x", expand=True)
+        dot.create_oval(3, 3, 11, 11, fill="#8f67ff", outline="")
+        tk.Label(row, text=text, fg="#e1d8ff", bg="#141028", font=("Segoe UI", 10), wraplength=360, justify="left").pack(side="left", fill="x", expand=True)
 
     def _health_row(self, parent, label, value):
-        box = tk.Frame(parent, bg="#13263c", highlightbackground="#214664", highlightthickness=1)
+        box = tk.Frame(parent, bg="#1a1638", highlightbackground="#4f3f8f", highlightthickness=1)
         box.pack(fill="x", pady=4)
-        tk.Label(box, text=label, fg="#9fc0de", bg="#13263c", font=("Segoe UI", 9)).pack(side="left", padx=10, pady=10)
-        tk.Label(box, text=value, fg="#d7e9fb", bg="#13263c", font=("Segoe UI", 10, "bold")).pack(side="left", padx=(0, 10))
-        status = tk.Label(box, text="Checking...", fg="#ffdcae", bg="#13263c", font=("Segoe UI", 9, "bold"))
+        tk.Label(box, text=label, fg="#b4a7df", bg="#1a1638", font=("Segoe UI", 9)).pack(side="left", padx=10, pady=10)
+        tk.Label(box, text=value, fg="#ebe3ff", bg="#1a1638", font=("Segoe UI", 10, "bold")).pack(side="left", padx=(0, 10))
+        status = tk.Label(box, text="Checking...", fg="#ffdcab", bg="#1a1638", font=("Segoe UI", 9, "bold"))
         status.pack(side="right", padx=10)
         return status
 
     def _start_full_suite(self):
-        self._start_backend_service()
-        self.root.after(2000, lambda: self._open_url("http://localhost:8000/dashboard"))
+        if self.use_local_backend:
+            self._start_backend_service()
+            self.root.after(2000, lambda: self._open_url(self.dashboard_url))
+            return
+        self._open_url(self.dashboard_url)
 
     def _start_backend_service(self):
         if self._port_open("127.0.0.1", 8000):
@@ -294,7 +309,7 @@ class EtheriusSuiteApp:
 
     def _open_dashboard_when_ready(self, attempt=0):
         if self._port_open("127.0.0.1", 8000):
-            self._open_url("http://localhost:8000/dashboard")
+            self._open_url(self.dashboard_url)
             return
         if attempt >= 15:
             self._log("Backend startup is taking longer than expected.")
@@ -303,18 +318,36 @@ class EtheriusSuiteApp:
 
     def _port_open(self, host, port, timeout=0.7):
         try:
+            import socket
+
             with socket.create_connection((host, port), timeout=timeout):
                 return True
         except OSError:
             return False
 
+    def _url_online(self, url, timeout=4):
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return 200 <= response.status < 500
+        except urllib.error.HTTPError as http_error:
+            return 200 <= http_error.code < 500
+        except Exception:
+            return False
+
     def _refresh_health(self):
-        backend_ok = self._port_open("127.0.0.1", 8000)
-        dashboard_ok = self._port_open("127.0.0.1", 8000)
+        if self.use_local_backend:
+            backend_ok = self._port_open("127.0.0.1", 8000)
+            dashboard_ok = backend_ok
+            enroll_ok = backend_ok
+        else:
+            backend_ok = self._url_online(self.health_url)
+            dashboard_ok = self._url_online(self.dashboard_url)
+            enroll_ok = self._url_online(f"{self.health_url.replace('/health', '')}/api/agent/enroll")
 
         self._set_health("Backend API", backend_ok)
         self._set_health("Dashboard", dashboard_ok)
-        self._set_health("API Docs", backend_ok)
+        self._set_health("API Docs", enroll_ok)
 
         self.root.after(7000, self._refresh_health)
 

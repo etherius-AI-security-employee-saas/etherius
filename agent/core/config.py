@@ -1,15 +1,51 @@
 import json
-import os
+import sys
+from pathlib import Path
 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'agent_config.json')
+
+DEFAULT_CONFIG = {
+    "backend_url": "https://etherius-security-api.vercel.app",
+    "company_code": "",
+    "employee_key": "",
+    "activation_code": "",
+    "agent_token": "PASTE_YOUR_AGENT_TOKEN_HERE",
+    "endpoint_id": "PASTE_YOUR_ENDPOINT_ID_HERE",
+    "heartbeat_interval": 30,
+    "event_batch_interval": 10,
+    "version": "1.0.0",
+}
+
+
+def _resolve_config_file() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "agent_config.json"
+    return Path(__file__).resolve().parents[1] / "agent_config.json"
+
+
+CONFIG_FILE = _resolve_config_file()
+
 
 def load_config():
-    with open(CONFIG_FILE, 'r') as f:
-        return json.load(f)
+    if not CONFIG_FILE.exists():
+        save_config(DEFAULT_CONFIG.copy())
+        return DEFAULT_CONFIG.copy()
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        save_config(DEFAULT_CONFIG.copy())
+        return DEFAULT_CONFIG.copy()
+
+    merged = DEFAULT_CONFIG.copy()
+    merged.update(data if isinstance(data, dict) else {})
+    return merged
+
 
 def save_config(cfg):
-    with open(CONFIG_FILE, 'w') as f:
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
+
 
 config = load_config()
 

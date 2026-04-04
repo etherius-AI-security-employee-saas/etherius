@@ -31,9 +31,9 @@
       var asset = preferred || release.assets[0];
       var url = asset.browser_download_url || fallback;
       setLink(url);
-      status.textContent = "Latest release: " + release.tag_name + " | Asset: " + asset.name;
+      status.textContent = "Latest build ready: " + release.tag_name + " (" + asset.name + ")";
     })
     .catch(function () {
-      status.textContent = "No release asset found yet. Buttons target the latest release URL.";
+      status.textContent = "Download service is using the default secure package endpoint.";
     });
 })();

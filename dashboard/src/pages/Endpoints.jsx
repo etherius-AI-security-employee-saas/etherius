@@ -14,6 +14,11 @@ export default function Endpoints() {
   const [agentResult, setAgentResult] = useState(null)
   const [msg, setMsg] = useState(null)
   const [filter, setFilter] = useState('all')
+  const resolvedBackendUrl = useMemo(() => {
+    const envBase = import.meta.env.VITE_API_BASE_URL
+    if (envBase && envBase !== '/') return envBase.replace(/\/$/, '')
+    return window.location.origin.replace(/\/$/, '')
+  }, [])
 
   const fetch = () => dashboardAPI.endpoints().then(r => {
     setEndpoints(r.data)
@@ -66,7 +71,7 @@ export default function Endpoints() {
     }
   }
 
-  const rolloutConfig = agentResult ? `{\n  "backend_url": "http://localhost:8000",\n  "activation_code": "${agentResult.activation_code}",\n  "agent_token": "${agentResult.agent_token}",\n  "endpoint_id": "${agentResult.endpoint_id}",\n  "heartbeat_interval": 30,\n  "event_batch_interval": 10,\n  "version": "1.0.0"\n}` : null
+  const rolloutConfig = agentResult ? `{\n  "backend_url": "${resolvedBackendUrl}",\n  "activation_code": "${agentResult.activation_code}",\n  "agent_token": "${agentResult.agent_token}",\n  "endpoint_id": "${agentResult.endpoint_id}",\n  "heartbeat_interval": 30,\n  "event_batch_interval": 10,\n  "version": "1.0.0"\n}` : null
 
   return (
     <div>
@@ -178,7 +183,7 @@ export default function Endpoints() {
               <div className="soft-note"><strong>1.</strong> Register a device here.</div>
               <div className="soft-note"><strong>2.</strong> Copy the generated endpoint ID and agent token.</div>
               <div className="soft-note"><strong>3.</strong> Paste them into <span className="kbd-box">agent/agent_config.json</span> on the employee machine.</div>
-              <div className="soft-note"><strong>4.</strong> Run <span className="kbd-box">START_AGENT.bat</span> on that machine.</div>
+              <div className="soft-note"><strong>4.</strong> Run <span className="kbd-box">EMPLOYEE_START_SHIELD.bat</span> on that machine.</div>
             </div>
 
             {selected ? (

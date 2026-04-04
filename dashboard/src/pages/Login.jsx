@@ -22,6 +22,7 @@ export default function Login() {
   const [form, setForm] = useState(initialForm)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const showDemoPanel = !import.meta.env.PROD
   const demoEmail = import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@etheriusdemo.com'
   const demoPassword = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || 'Admin123!'
   const demoSubscriptionKey = import.meta.env.VITE_DEMO_SUBSCRIPTION_KEY || 'ETH-SUB-DEMO-2026-START'
@@ -81,12 +82,12 @@ export default function Login() {
       placeItems: 'center',
       padding: 22,
       background:
-        'radial-gradient(circle at top left, rgba(92, 200, 255, 0.2), transparent 28%), radial-gradient(circle at bottom right, rgba(0, 224, 184, 0.12), transparent 24%), linear-gradient(180deg, #07101c 0%, #02060d 100%)',
+        'radial-gradient(circle at top left, rgba(153, 106, 255, 0.24), transparent 30%), radial-gradient(circle at bottom right, rgba(75, 227, 255, 0.14), transparent 24%), linear-gradient(180deg, #090716 0%, #020208 100%)',
     }}>
       <div style={{
         width: 'min(1080px, 100%)',
         display: 'grid',
-        gridTemplateColumns: '1.05fr 0.95fr',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
         gap: 18,
       }}>
         <section className="panel" style={{
@@ -96,14 +97,14 @@ export default function Login() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           background:
-            'radial-gradient(circle at top, rgba(92, 200, 255, 0.18), transparent 28%), linear-gradient(180deg, rgba(10, 23, 39, 0.98), rgba(5, 12, 21, 0.98))',
+            'radial-gradient(circle at top, rgba(154, 111, 255, 0.2), transparent 30%), linear-gradient(180deg, rgba(14, 13, 38, 0.98), rgba(8, 8, 20, 0.98))',
         }}>
           <div>
             <div style={{ marginBottom: 24 }}>
               <BrandMark />
             </div>
-            <h1 style={{ margin: '16px 0 14px', fontSize: 56, lineHeight: 0.96, letterSpacing: '-0.06em' }}>
-              Security operations that feel sharp, calm, and in control.
+            <h1 style={{ margin: '16px 0 14px', fontSize: 56, lineHeight: 0.92, letterSpacing: '-0.04em' }}>
+              Premium security command for modern employee fleets.
             </h1>
             <p style={{ color: 'var(--muted-strong)', fontSize: 16, lineHeight: 1.7, maxWidth: 520 }}>
               Monitor endpoints, manage alerts, and coordinate response actions from one clean command surface built for speed.
@@ -112,9 +113,9 @@ export default function Login() {
 
           <div style={{ display: 'grid', gap: 14 }}>
             {[
-              'Fast company registration with a working local backend.',
-              'Live endpoint, alert, and response workflows connected to the API.',
-              'A cleaner visual system with fewer fragile setup assumptions.',
+              'Fast subscription onboarding with license-aware access controls.',
+              'Live endpoint, alert, and response operations from a single console.',
+              'Premium UX tuned for executive and SOC-level daily workflow.',
             ].map(item => (
               <div key={item} style={{
                 display: 'flex',
@@ -122,8 +123,8 @@ export default function Login() {
                 gap: 12,
                 padding: '14px 16px',
                 borderRadius: 14,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(100, 181, 246, 0.12)',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(153, 117, 255, 0.18)',
               }}>
                 <Sparkles size={16} color="var(--accent-2)" />
                 <span style={{ color: 'var(--muted-strong)', fontSize: 14 }}>{item}</span>
@@ -148,7 +149,7 @@ export default function Login() {
                   borderRadius: 12,
                   border: 'none',
                   cursor: 'pointer',
-                  background: tab === value ? 'linear-gradient(135deg, rgba(31, 143, 255, 0.28), rgba(0, 201, 184, 0.16))' : 'transparent',
+                  background: tab === value ? 'linear-gradient(135deg, rgba(154, 111, 255, 0.34), rgba(75, 227, 255, 0.14))' : 'transparent',
                   color: tab === value ? 'var(--text)' : 'var(--muted)',
                   fontWeight: tab === value ? 700 : 600,
                 }}
@@ -169,44 +170,46 @@ export default function Login() {
             </div>
           </div>
 
-          <div style={{
-            marginBottom: 18,
-            padding: '14px 16px',
-            borderRadius: 14,
-            background: 'rgba(92, 200, 255, 0.06)',
-            border: '1px solid rgba(92, 200, 255, 0.14)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-                  Demo Admin Ready
+          {showDemoPanel ? (
+            <div style={{
+              marginBottom: 18,
+              padding: '14px 16px',
+              borderRadius: 14,
+              background: 'rgba(159, 107, 255, 0.08)',
+              border: '1px solid rgba(159, 107, 255, 0.2)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
+                    Demo Admin Ready
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--muted-strong)', lineHeight: 1.6 }}>
+                    Email: <strong>{demoEmail}</strong><br />
+                    Password: <strong>{demoPassword}</strong><br />
+                    Subscription Key: <strong>{demoSubscriptionKey}</strong>
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--muted-strong)', lineHeight: 1.6 }}>
-                  Email: <strong>{demoEmail}</strong><br />
-                  Password: <strong>{demoPassword}</strong><br />
-                  Subscription Key: <strong>{demoSubscriptionKey}</strong>
-                </div>
+                <button
+                  type="button"
+                  onClick={useDemoAdmin}
+                  className="btn-secondary"
+                  style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <KeyRound size={14} />
+                  Use Demo Admin
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={useDemoAdmin}
-                className="btn-secondary"
-                style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}
-              >
-                <KeyRound size={14} />
-                Use Demo Admin
-              </button>
             </div>
-          </div>
+          ) : null}
 
           {error ? (
             <div style={{
               marginBottom: 18,
               padding: '12px 14px',
               borderRadius: 12,
-              border: '1px solid rgba(255, 107, 107, 0.25)',
-              background: 'rgba(255, 107, 107, 0.08)',
-              color: '#ff9a9a',
+              border: '1px solid rgba(255, 108, 146, 0.35)',
+              background: 'rgba(255, 108, 146, 0.12)',
+              color: '#ffb5cb',
               fontSize: 14,
             }}>
               {error}
@@ -294,8 +297,8 @@ export default function Login() {
             marginTop: 20,
             padding: '14px 16px',
             borderRadius: 14,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(100, 181, 246, 0.08)',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(153, 117, 255, 0.16)',
             color: 'var(--muted)',
             fontSize: 13,
             lineHeight: 1.6,

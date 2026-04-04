@@ -4,9 +4,9 @@ export default function Topbar({ title, subtitle, onRefresh }) {
   return (
     <header style={{
       minHeight: 72,
-      background: 'rgba(6, 17, 31, 0.78)',
-      backdropFilter: 'blur(16px)',
-      borderBottom: '1px solid rgba(100, 181, 246, 0.08)',
+      background: 'rgba(11, 10, 27, 0.72)',
+      backdropFilter: 'blur(20px)',
+      borderBottom: '1px solid rgba(153, 117, 255, 0.16)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -17,7 +17,7 @@ export default function Topbar({ title, subtitle, onRefresh }) {
       zIndex: 50,
     }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em' }}>{title}</h1>
+        <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.02em' }}>{title}</h1>
         {subtitle ? <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: 13 }}>{subtitle}</div> : null}
       </div>
 

@@ -58,6 +58,7 @@ Push-Location $root
 Copy-Item "$root\dist\EtheriusSuite.exe" "$distRoot\EtheriusSuite.exe"
 Copy-Item "$root\dist\EtheriusShield.exe" "$distRoot\EtheriusShield.exe"
 Copy-Item "$root\dist\EtheriusBackendService.exe" "$distRoot\EtheriusBackendService.exe"
+Copy-Item "$agent\agent_config.json" "$distRoot\agent_config.json"
 
 Pop-Location
 

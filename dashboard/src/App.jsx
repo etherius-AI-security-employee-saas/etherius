@@ -30,8 +30,8 @@ function Layout() {
             height: 58,
             margin: '0 auto 18px',
             borderRadius: 18,
-            background: 'linear-gradient(135deg, #1f8fff, #00c9b8)',
-            boxShadow: '0 16px 32px rgba(21, 118, 217, 0.28)',
+            background: 'linear-gradient(135deg, #995eff, #5f40ff 55%, #48dfff)',
+            boxShadow: '0 16px 32px rgba(87, 49, 255, 0.34)',
             display: 'grid',
             placeItems: 'center',
           }}>

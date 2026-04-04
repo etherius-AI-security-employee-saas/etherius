@@ -1,5 +1,5 @@
 {
-  "backend_url": "http://localhost:8000",
+  "backend_url": "https://etherius-security-api.vercel.app",
   "company_code": "",
   "employee_key": "",
   "activation_code": "",

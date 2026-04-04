@@ -30,6 +30,7 @@ Name: "desktopicon"; Description: "Create desktop icon"; GroupDescription: "Addi
 Source: "..\release\bin\EtheriusSuite.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\bin\EtheriusShield.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\bin\EtheriusBackendService.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\release\bin\agent_config.json"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Etherius Control Center"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"
