@@ -2,6 +2,7 @@ import ctypes
 import json
 import os
 import platform
+import random
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
@@ -80,6 +81,17 @@ class EtheriusApp:
         self.employee_keys_list = None
         self.activity_feed = None
         self.scan_results = None
+        self.notebook = None
+        self.admin_tab = None
+        self.employee_tab = None
+        self.ops_tab = None
+        self.admin_tab_visible = True
+        self.auto_scan_job = None
+
+        self.policy_mode_var = tk.StringVar(value=str(self.state.get("policy_mode", "advisory")))
+        self.ai_sensitivity_var = tk.IntVar(value=self._safe_int(self.state.get("ai_sensitivity", 70), 70))
+        self.auto_scan_interval_var = tk.StringVar(value=str(self.state.get("auto_scan_interval", "30")))
+        self.notify_manager_var = tk.BooleanVar(value=self._to_bool(self.state.get("notify_manager", True)))
 
         self._set_identity()
         self._configure_styles()
@@ -115,16 +127,35 @@ class EtheriusApp:
             style.theme_use("clam")
         except Exception:
             pass
-        style.configure("Primary.TButton", padding=(12, 8), font=("Segoe UI", 10, "bold"))
-        style.configure("Secondary.TButton", padding=(10, 7), font=("Segoe UI", 10))
-        style.configure("Header.TLabel", font=("Segoe UI", 18, "bold"), foreground="#f5f0ff", background="#070612")
-        style.configure("Muted.TLabel", font=("Segoe UI", 10), foreground="#bfb5e0", background="#070612")
+        style.configure("TNotebook", background="#0b0b09")
+        style.configure("TNotebook.Tab", background="#211a12", foreground="#eadfce", padding=(12, 8))
+        style.map("TNotebook.Tab", background=[("selected", "#c78a38"), ("active", "#a06d2e")], foreground=[("selected", "#fff5e7")])
+        style.configure(
+            "Primary.TButton",
+            padding=(12, 8),
+            font=("Segoe UI", 10, "bold"),
+            foreground="#f7f0e5",
+            background="#c78a38",
+            borderwidth=0,
+        )
+        style.map("Primary.TButton", background=[("active", "#d79b46"), ("pressed", "#ad7330")])
+        style.configure(
+            "Secondary.TButton",
+            padding=(10, 7),
+            font=("Segoe UI", 10),
+            foreground="#e8dcc8",
+            background="#2a2621",
+            borderwidth=0,
+        )
+        style.map("Secondary.TButton", background=[("active", "#343029"), ("pressed", "#1f1b17")])
+        style.configure("Header.TLabel", font=("Segoe UI", 18, "bold"), foreground="#f5eee3", background="#0a0908")
+        style.configure("Muted.TLabel", font=("Segoe UI", 10), foreground="#c8bba8", background="#0a0908")
 
     def _build(self):
-        shell = tk.Frame(self.root, bg="#070612")
+        shell = tk.Frame(self.root, bg="#0a0908")
         shell.pack(fill="both", expand=True, padx=18, pady=14)
 
-        top = tk.Frame(shell, bg="#070612")
+        top = tk.Frame(shell, bg="#0a0908")
         top.pack(fill="x", pady=(0, 10))
         ttk.Label(top, text="Etherius Unified Security Console", style="Header.TLabel").pack(anchor="w")
         ttk.Label(
@@ -133,36 +164,81 @@ class EtheriusApp:
             style="Muted.TLabel",
         ).pack(anchor="w", pady=(4, 0))
 
-        notebook = ttk.Notebook(shell)
-        notebook.pack(fill="both", expand=True)
+        mode_row = tk.Frame(shell, bg="#0a0908")
+        mode_row.pack(fill="x", pady=(0, 8))
+        ttk.Button(mode_row, text="Employee View", style="Primary.TButton", command=self._show_employee_section).pack(side="left")
+        ttk.Button(mode_row, text="Manager View", style="Secondary.TButton", command=self._request_manager_section).pack(side="left", padx=8)
+        tk.Label(
+            mode_row,
+            text="Employee mode is default. Manager dashboard opens only after manager action and login.",
+            bg="#0a0908",
+            fg="#c8bba8",
+            anchor="w",
+        ).pack(side="left", padx=10)
 
-        admin_tab = tk.Frame(notebook, bg="#0f0c22")
-        employee_tab = tk.Frame(notebook, bg="#0f0c22")
-        ops_tab = tk.Frame(notebook, bg="#0f0c22")
-        notebook.add(admin_tab, text="Admin Activation + Dashboard")
-        notebook.add(employee_tab, text="Employee Activation + Protection")
-        notebook.add(ops_tab, text="Operations")
+        self.notebook = ttk.Notebook(shell)
+        self.notebook.pack(fill="both", expand=True)
 
-        self._build_admin_tab(admin_tab)
-        self._build_employee_tab(employee_tab)
-        self._build_ops_tab(ops_tab)
+        self.admin_tab = tk.Frame(self.notebook, bg="#12100e")
+        self.employee_tab = tk.Frame(self.notebook, bg="#12100e")
+        self.ops_tab = tk.Frame(self.notebook, bg="#12100e")
+        self.notebook.add(self.admin_tab, text="Manager Dashboard")
+        self.notebook.add(self.employee_tab, text="Employee Protection")
+        self.notebook.add(self.ops_tab, text="Security Settings")
+
+        self._build_admin_tab(self.admin_tab)
+        self._build_employee_tab(self.employee_tab)
+        self._build_ops_tab(self.ops_tab)
+        self._show_employee_section()
+
+    def _request_manager_section(self):
+        decision = messagebox.askyesno(
+            "Manager Section",
+            "Manager section includes customer dashboard and employee license management.\n\nProceed to manager sign-in view?",
+        )
+        if decision:
+            self._show_manager_section()
+
+    def _show_employee_section(self):
+        if not self.notebook or not self.admin_tab_visible:
+            if self.notebook and self.employee_tab:
+                self.notebook.select(self.employee_tab)
+            return
+        try:
+            self.notebook.hide(self.admin_tab)
+            self.admin_tab_visible = False
+        except Exception:
+            pass
+        if self.notebook and self.employee_tab:
+            self.notebook.select(self.employee_tab)
+
+    def _show_manager_section(self):
+        if not self.notebook:
+            return
+        if not self.admin_tab_visible:
+            try:
+                self.notebook.insert(0, self.admin_tab, text="Manager Dashboard")
+            except Exception:
+                self.notebook.add(self.admin_tab, text="Manager Dashboard")
+            self.admin_tab_visible = True
+        self.notebook.select(self.admin_tab)
 
     def _build_admin_tab(self, parent):
-        wrap = tk.Frame(parent, bg="#0f0c22")
+        wrap = tk.Frame(parent, bg="#12100e")
         wrap.pack(fill="both", expand=True, padx=14, pady=14)
 
-        conn = tk.LabelFrame(wrap, text="Connection", bg="#151132", fg="#f2eaff", bd=1, relief="groove")
+        conn = tk.LabelFrame(wrap, text="Connection", bg="#1a1917", fg="#f5efe6", bd=1, relief="groove")
         conn.pack(fill="x", pady=(0, 10))
         self._labeled_entry(conn, "API URL", self.backend_url_var, width=76).pack(fill="x", padx=10, pady=8)
 
-        auth_row = tk.Frame(wrap, bg="#0f0c22")
+        auth_row = tk.Frame(wrap, bg="#12100e")
         auth_row.pack(fill="x", pady=(0, 10))
 
         activation_box = tk.LabelFrame(
             auth_row,
             text="New Customer Activation (requires subscription license key)",
-            bg="#151132",
-            fg="#f2eaff",
+            bg="#1a1917",
+            fg="#f5efe6",
             bd=1,
             relief="groove",
         )
@@ -181,8 +257,8 @@ class EtheriusApp:
         signin_box = tk.LabelFrame(
             auth_row,
             text="Existing Customer Admin Sign In",
-            bg="#151132",
-            fg="#f2eaff",
+            bg="#1a1917",
+            fg="#f5efe6",
             bd=1,
             relief="groove",
         )
@@ -190,20 +266,20 @@ class EtheriusApp:
 
         self._labeled_entry(signin_box, "Admin Email", self.admin_email_var).pack(fill="x", padx=10, pady=(8, 0))
         self._labeled_entry(signin_box, "Admin Password", self.admin_password_var, show="*").pack(fill="x", padx=10, pady=(8, 0))
-        btn_row = tk.Frame(signin_box, bg="#151132")
+        btn_row = tk.Frame(signin_box, bg="#1a1917")
         btn_row.pack(fill="x", padx=10, pady=10)
         ttk.Button(btn_row, text="Sign In", style="Primary.TButton", command=self.sign_in_admin).pack(side="left")
         ttk.Button(btn_row, text="Sign Out", style="Secondary.TButton", command=self.sign_out_admin).pack(side="left", padx=8)
         ttk.Button(btn_row, text="Refresh Dashboard", style="Secondary.TButton", command=self.refresh_admin_dashboard).pack(side="left")
 
-        tk.Label(signin_box, textvariable=self.admin_session_var, bg="#151132", fg="#8de4be", anchor="w").pack(fill="x", padx=10, pady=(2, 10))
+        tk.Label(signin_box, textvariable=self.admin_session_var, bg="#1a1917", fg="#8de4be", anchor="w").pack(fill="x", padx=10, pady=(2, 10))
 
-        dashboard = tk.LabelFrame(wrap, text="In-App Customer Dashboard", bg="#151132", fg="#f2eaff", bd=1, relief="groove")
+        dashboard = tk.LabelFrame(wrap, text="In-App Customer Dashboard", bg="#1a1917", fg="#f5efe6", bd=1, relief="groove")
         dashboard.pack(fill="both", expand=True)
         self.admin_locked_overlay = tk.Label(
             dashboard,
             text="Locked. Activate company with subscription key or sign in as admin customer.",
-            bg="#201a45",
+            bg="#2b2115",
             fg="#ffd7a8",
             font=("Segoe UI", 10, "bold"),
             padx=10,
@@ -211,37 +287,37 @@ class EtheriusApp:
         )
         self.admin_locked_overlay.pack(fill="x", padx=10, pady=(8, 6))
 
-        summary = tk.Frame(dashboard, bg="#151132")
+        summary = tk.Frame(dashboard, bg="#1a1917")
         summary.pack(fill="x", padx=10, pady=(0, 6))
-        tk.Label(summary, textvariable=self.stats_text_var, bg="#151132", fg="#e9e3ff", justify="left", anchor="w").pack(fill="x")
-        tk.Label(summary, textvariable=self.company_code_var, bg="#151132", fg="#9dd8ff", anchor="w").pack(fill="x", pady=(2, 0))
-        tk.Label(summary, textvariable=self.subscription_status_var, bg="#151132", fg="#a9f3d0", anchor="w").pack(fill="x")
-        tk.Label(summary, textvariable=self.subscription_seats_var, bg="#151132", fg="#a9f3d0", anchor="w").pack(fill="x")
-        tk.Label(summary, textvariable=self.subscription_capacity_var, bg="#151132", fg="#a9f3d0", anchor="w").pack(fill="x")
+        tk.Label(summary, textvariable=self.stats_text_var, bg="#1a1917", fg="#f1e8da", justify="left", anchor="w").pack(fill="x")
+        tk.Label(summary, textvariable=self.company_code_var, bg="#1a1917", fg="#8fd5b7", anchor="w").pack(fill="x", pady=(2, 0))
+        tk.Label(summary, textvariable=self.subscription_status_var, bg="#1a1917", fg="#f4b86f", anchor="w").pack(fill="x")
+        tk.Label(summary, textvariable=self.subscription_seats_var, bg="#1a1917", fg="#8fd5b7", anchor="w").pack(fill="x")
+        tk.Label(summary, textvariable=self.subscription_capacity_var, bg="#1a1917", fg="#8fd5b7", anchor="w").pack(fill="x")
 
-        grid = tk.Frame(dashboard, bg="#151132")
+        grid = tk.Frame(dashboard, bg="#1a1917")
         grid.pack(fill="both", expand=True, padx=10, pady=(2, 10))
 
-        endpoints_box = tk.LabelFrame(grid, text="Employees / Endpoints", bg="#151132", fg="#f2eaff")
+        endpoints_box = tk.LabelFrame(grid, text="Employees / Endpoints", bg="#1a1917", fg="#f5efe6")
         endpoints_box.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 6))
-        self.endpoints_list = tk.Listbox(endpoints_box, height=12, bg="#0c0a1d", fg="#e7ddff")
+        self.endpoints_list = tk.Listbox(endpoints_box, height=12, bg="#0e0d0c", fg="#eadfce")
         self.endpoints_list.pack(fill="both", expand=True, padx=8, pady=8)
 
-        alerts_box = tk.LabelFrame(grid, text="Open Alerts", bg="#151132", fg="#f2eaff")
+        alerts_box = tk.LabelFrame(grid, text="Open Alerts", bg="#1a1917", fg="#f5efe6")
         alerts_box.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 6))
-        self.alerts_list = tk.Listbox(alerts_box, height=12, bg="#0c0a1d", fg="#ffd9b3")
+        self.alerts_list = tk.Listbox(alerts_box, height=12, bg="#0e0d0c", fg="#ffd0a1")
         self.alerts_list.pack(fill="both", expand=True, padx=8, pady=8)
 
-        keys_box = tk.LabelFrame(grid, text="Employee Activation Keys", bg="#151132", fg="#f2eaff")
+        keys_box = tk.LabelFrame(grid, text="Employee Activation Keys", bg="#1a1917", fg="#f5efe6")
         keys_box.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(6, 0))
-        key_form = tk.Frame(keys_box, bg="#151132")
+        key_form = tk.Frame(keys_box, bg="#1a1917")
         key_form.pack(fill="x", padx=8, pady=8)
         self._labeled_entry(key_form, "Label", self.employee_key_label_var, width=26).grid(row=0, column=0, padx=(0, 8))
         self._labeled_entry(key_form, "Max Activations", self.employee_key_max_var, width=14).grid(row=0, column=1, padx=(0, 8))
         self._labeled_entry(key_form, "Valid Days", self.employee_key_days_var, width=14).grid(row=0, column=2, padx=(0, 8))
         ttk.Button(key_form, text="Generate Employee Key", style="Primary.TButton", command=self.create_employee_key).grid(row=0, column=3)
 
-        self.employee_keys_list = tk.Listbox(keys_box, height=8, bg="#0c0a1d", fg="#e7ddff")
+        self.employee_keys_list = tk.Listbox(keys_box, height=8, bg="#0e0d0c", fg="#eadfce")
         self.employee_keys_list.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         grid.grid_columnconfigure(0, weight=1)
@@ -249,39 +325,39 @@ class EtheriusApp:
         grid.grid_rowconfigure(0, weight=1)
         grid.grid_rowconfigure(1, weight=1)
     def _build_employee_tab(self, parent):
-        wrap = tk.Frame(parent, bg="#0f0c22")
+        wrap = tk.Frame(parent, bg="#12100e")
         wrap.pack(fill="both", expand=True, padx=14, pady=14)
 
-        setup = tk.LabelFrame(wrap, text="Employee Activation (same software)", bg="#151132", fg="#f2eaff", bd=1, relief="groove")
+        setup = tk.LabelFrame(wrap, text="Employee Activation (same software)", bg="#1a1917", fg="#f5efe6", bd=1, relief="groove")
         setup.pack(fill="x", pady=(0, 10))
         self._labeled_entry(setup, "API URL", self.backend_url_var, width=76).pack(fill="x", padx=10, pady=(8, 0))
         self._labeled_entry(setup, "Company Enrollment Code", self.employee_company_code_var).pack(fill="x", padx=10, pady=(8, 0))
         self._labeled_entry(setup, "Employee Activation Key", self.employee_key_var).pack(fill="x", padx=10, pady=(8, 0))
         self._labeled_entry(setup, "Activation Code", self.employee_activation_var).pack(fill="x", padx=10, pady=(8, 0))
 
-        btn_row = tk.Frame(setup, bg="#151132")
+        btn_row = tk.Frame(setup, bg="#1a1917")
         btn_row.pack(fill="x", padx=10, pady=10)
         ttk.Button(btn_row, text="Enroll Employee Device", style="Primary.TButton", command=self.enroll_employee_device).pack(side="left")
         ttk.Button(btn_row, text="Apply Activation Code", style="Secondary.TButton", command=self.apply_activation_code).pack(side="left", padx=8)
         ttk.Button(btn_row, text="Start Protection", style="Primary.TButton", command=self.start_protection).pack(side="left", padx=8)
         ttk.Button(btn_row, text="Stop Protection", style="Secondary.TButton", command=self.stop_protection).pack(side="left")
 
-        scan_row = tk.Frame(setup, bg="#151132")
+        scan_row = tk.Frame(setup, bg="#1a1917")
         scan_row.pack(fill="x", padx=10, pady=(0, 8))
         ttk.Button(scan_row, text="Quick AI Threat Scan", style="Secondary.TButton", command=self.run_quick_scan).pack(side="left")
         ttk.Button(scan_row, text="Deep Corporate Risk Scan", style="Secondary.TButton", command=self.run_deep_scan).pack(side="left", padx=8)
-        tk.Label(scan_row, textvariable=self.scan_summary_var, bg="#151132", fg="#ffd59f", anchor="w").pack(side="left", padx=10)
+        tk.Label(scan_row, textvariable=self.scan_summary_var, bg="#1a1917", fg="#f4b86f", anchor="w").pack(side="left", padx=10)
 
-        tk.Label(setup, textvariable=self.employee_runtime_var, bg="#151132", fg="#8de4be", anchor="w").pack(fill="x", padx=10)
-        tk.Label(setup, textvariable=self.employee_heartbeat_var, bg="#151132", fg="#c6bbeb", anchor="w").pack(fill="x", padx=10)
-        tk.Label(setup, textvariable=self.employee_events_var, bg="#151132", fg="#c6bbeb", anchor="w").pack(fill="x", padx=10, pady=(0, 8))
+        tk.Label(setup, textvariable=self.employee_runtime_var, bg="#1a1917", fg="#8de4be", anchor="w").pack(fill="x", padx=10)
+        tk.Label(setup, textvariable=self.employee_heartbeat_var, bg="#1a1917", fg="#d8ccb8", anchor="w").pack(fill="x", padx=10)
+        tk.Label(setup, textvariable=self.employee_events_var, bg="#1a1917", fg="#d8ccb8", anchor="w").pack(fill="x", padx=10, pady=(0, 8))
 
-        details = tk.Frame(wrap, bg="#0f0c22")
+        details = tk.Frame(wrap, bg="#12100e")
         details.pack(fill="both", expand=True)
 
-        left = tk.LabelFrame(details, text="Device Identity", bg="#151132", fg="#f2eaff")
+        left = tk.LabelFrame(details, text="Device Identity", bg="#1a1917", fg="#f5efe6")
         left.pack(side="left", fill="both", expand=True, padx=(0, 6))
-        right = tk.LabelFrame(details, text="Protection Activity Feed", bg="#151132", fg="#f2eaff")
+        right = tk.LabelFrame(details, text="Protection Activity Feed", bg="#1a1917", fg="#f5efe6")
         right.pack(side="left", fill="both", expand=True, padx=(6, 0))
 
         info = collect_device_info()
@@ -294,36 +370,102 @@ class EtheriusApp:
             f"Platform: {platform.platform()}",
         ]
         for line in device_lines:
-            tk.Label(left, text=line, bg="#151132", fg="#e7ddff", anchor="w").pack(fill="x", padx=10, pady=(8, 0))
+            tk.Label(left, text=line, bg="#1a1917", fg="#eadfce", anchor="w").pack(fill="x", padx=10, pady=(8, 0))
 
-        self.activity_feed = tk.Text(right, bg="#0c0a1d", fg="#daceff", relief="flat")
+        self.activity_feed = tk.Text(right, bg="#0e0d0c", fg="#eadfce", relief="flat")
         self.activity_feed.pack(fill="both", expand=True, padx=8, pady=8)
 
-        self.scan_results = tk.Text(left, height=10, bg="#0c0a1d", fg="#9dd8ff", relief="flat")
+        self.scan_results = tk.Text(left, height=10, bg="#0e0d0c", fg="#8fd5b7", relief="flat")
         self.scan_results.pack(fill="both", expand=True, padx=10, pady=(10, 10))
 
     def _build_ops_tab(self, parent):
-        wrap = tk.Frame(parent, bg="#0f0c22")
+        wrap = tk.Frame(parent, bg="#12100e")
         wrap.pack(fill="both", expand=True, padx=14, pady=14)
-        box = tk.LabelFrame(wrap, text="Platform Notes", bg="#151132", fg="#f2eaff")
-        box.pack(fill="both", expand=True)
+        left = tk.LabelFrame(wrap, text="AI Security Controls", bg="#1c1815", fg="#f5efe6")
+        left.pack(side="left", fill="both", expand=True, padx=(0, 8))
+        right = tk.LabelFrame(wrap, text="Product Intelligence", bg="#1c1815", fg="#f5efe6")
+        right.pack(side="left", fill="both", expand=True, padx=(8, 0))
 
-        lines = [
-            "1) One setup and one app now handles both customer admin and employee activation.",
-            "2) Customer admin dashboard is inside this software and is locked until activation/sign-in.",
-            "3) Company activation requires a valid subscription license key from CEO/provider.",
-            "4) Employee keys are generated by customer admin with seat-limit enforcement.",
-            "5) Employees use this same app in Employee Activation tab to enroll and start protection.",
-            "6) Endpoint telemetry and risk alerts are sent to backend and shown in the in-app dashboard.",
+        mode_row = tk.Frame(left, bg="#1c1815")
+        mode_row.pack(fill="x", padx=12, pady=(12, 6))
+        tk.Label(mode_row, text="Protection Policy", bg="#1c1815", fg="#d7c4a4").pack(anchor="w")
+        ttk.Combobox(mode_row, textvariable=self.policy_mode_var, values=["advisory", "balanced", "strict"], state="readonly").pack(
+            fill="x", pady=(4, 0)
+        )
+
+        sensitivity_row = tk.Frame(left, bg="#1c1815")
+        sensitivity_row.pack(fill="x", padx=12, pady=(6, 6))
+        tk.Label(sensitivity_row, text="AI Sensitivity (0-100)", bg="#1c1815", fg="#d7c4a4").pack(anchor="w")
+        tk.Scale(
+            sensitivity_row,
+            from_=0,
+            to=100,
+            orient="horizontal",
+            variable=self.ai_sensitivity_var,
+            bg="#1c1815",
+            fg="#f5efe6",
+            troughcolor="#2d261f",
+            highlightthickness=0,
+        ).pack(fill="x")
+
+        auto_row = tk.Frame(left, bg="#1c1815")
+        auto_row.pack(fill="x", padx=12, pady=(6, 6))
+        self._labeled_entry(auto_row, "Auto Scan Interval (minutes)", self.auto_scan_interval_var, width=20).pack(fill="x")
+
+        notify_row = tk.Frame(left, bg="#1c1815")
+        notify_row.pack(fill="x", padx=12, pady=(6, 6))
+        tk.Checkbutton(
+            notify_row,
+            text="Send scan intelligence to manager dashboard",
+            variable=self.notify_manager_var,
+            bg="#1c1815",
+            fg="#e8dcc8",
+            activebackground="#1c1815",
+            activeforeground="#e8dcc8",
+            selectcolor="#2a2621",
+        ).pack(anchor="w")
+
+        actions = tk.Frame(left, bg="#1c1815")
+        actions.pack(fill="x", padx=12, pady=(8, 12))
+        ttk.Button(actions, text="Save Security Settings", style="Primary.TButton", command=self.save_security_settings).pack(side="left")
+
+        info_lines = [
+            "Core posture:",
+            "- One setup, one software, dual-role secure architecture.",
+            "- Manager dashboard hidden in default employee mode.",
+            "- Subscription-key activation required for manager onboarding.",
+            "- Employee keys are quantity-limited by purchased seat count.",
+            "",
+            "AI protection capabilities:",
+            "- Process and command-line threat heuristics",
+            "- Suspicious network C2-like port detection",
+            "- Sensitive-path executable/script inspection",
+            "- Email lure and phishing-indicator analysis",
+            "- Local quick/deep risk scanning with manager telemetry",
+            "",
+            "Safety principle:",
+            "- Advisory-first: critical business tools are allowlisted and not auto-blocked by default.",
+            "- Strict mode increases detection sensitivity and response recommendations.",
         ]
-        for line in lines:
-            tk.Label(box, text=line, bg="#151132", fg="#e7ddff", justify="left", anchor="w").pack(fill="x", padx=12, pady=(10, 0))
+        for line in info_lines:
+            tk.Label(right, text=line, bg="#1c1815", fg="#eadfce", anchor="w", justify="left").pack(fill="x", padx=12, pady=(8, 0))
 
     def _labeled_entry(self, parent, label, variable, width=34, show=None):
         frame = tk.Frame(parent, bg=parent["bg"])
         tk.Label(frame, text=label, bg=parent["bg"], fg="#c9bfe8", anchor="w").pack(anchor="w")
-        tk.Entry(frame, textvariable=variable, width=width, show=show, bg="#0c0a1d", fg="#efe9ff", insertbackground="#efe9ff").pack(fill="x", pady=(3, 0))
+        tk.Entry(frame, textvariable=variable, width=width, show=show, bg="#0e0d0c", fg="#f5efe6", insertbackground="#f5efe6").pack(fill="x", pady=(3, 0))
         return frame
+
+    def _safe_int(self, value, default=0):
+        try:
+            return int(value)
+        except Exception:
+            return default
+
+    def _to_bool(self, value):
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
     def _request(self, method, path, payload=None, auth=False, timeout=20):
         base = self.backend_url_var.get().strip().rstrip("/")
@@ -378,6 +520,7 @@ class EtheriusApp:
             role = str(data.get("role", "")).lower()
             if role not in {"manager", "admin", "superadmin"}:
                 raise RuntimeError("This account cannot access manager dashboard.")
+            self._show_manager_section()
             self.access_token = data["access_token"]
             self.admin_role = role
             self.admin_name = data.get("full_name") or payload["email"]
@@ -406,6 +549,7 @@ class EtheriusApp:
         self._clear_list(self.alerts_list)
         self._clear_list(self.employee_keys_list)
         self._append_feed("Admin signed out.")
+        self._show_employee_section()
     def refresh_admin_dashboard(self):
         if not self.access_token:
             messagebox.showerror("Locked", "Sign in first to access dashboard.")
@@ -555,11 +699,26 @@ class EtheriusApp:
         self.agent.start()
         self.employee_runtime_var.set("Protection active")
         self._append_feed("Protection started.")
+        self._schedule_auto_scan(initial_delay_seconds=12)
 
     def stop_protection(self):
+        self._cancel_auto_scan()
         self.agent.stop()
         self.employee_runtime_var.set("Protection offline")
         self._append_feed("Protection stopped.")
+
+    def save_security_settings(self):
+        interval = self.auto_scan_interval_var.get().strip()
+        if not interval.isdigit() or int(interval) <= 0:
+            messagebox.showerror("Invalid settings", "Auto scan interval must be a positive number.")
+            return
+        self._save_state()
+        self._append_feed(
+            f"Security settings saved: mode={self.policy_mode_var.get()}, sensitivity={self.ai_sensitivity_var.get()}, interval={interval}m."
+        )
+        if self.agent.running:
+            self._schedule_auto_scan(initial_delay_seconds=10)
+        messagebox.showinfo("Saved", "Security settings saved successfully.")
 
     def run_quick_scan(self):
         self._run_local_scan(deep=False)
@@ -569,14 +728,30 @@ class EtheriusApp:
 
     def _run_local_scan(self, deep=False):
         try:
-            scan_data = run_threat_scan(deep=deep)
+            policy_mode = str(self.policy_mode_var.get() or "advisory").lower()
+            force_deep = deep or policy_mode == "strict"
+            scan_data = run_threat_scan(deep=force_deep)
             summary = scan_data["summary"]
             findings = scan_data["findings"]
+            raw_score = int(summary.get("local_scan_risk_score", 0))
+            sensitivity = int(self.ai_sensitivity_var.get() or 70)
+            adjusted_score = max(0, min(100, raw_score + int((sensitivity - 70) * 0.4)))
+            adjusted_severity = (
+                "critical" if adjusted_score >= 85 else "high" if adjusted_score >= 65 else "medium" if adjusted_score >= 40 else "low"
+            )
+            summary["policy_mode"] = policy_mode
+            summary["scan_depth"] = "deep" if force_deep else "quick"
+            summary["local_scan_risk_score_raw"] = raw_score
+            summary["local_scan_risk_score"] = adjusted_score
+            summary["local_scan_severity"] = adjusted_severity
+            summary["ai_sensitivity"] = sensitivity
             self.scan_summary_var.set(
-                f"{summary['mode'].upper()} scan: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100), findings={summary['suspicious_items_found']}"
+                f"{summary['scan_depth'].upper()} scan: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100), findings={summary['suspicious_items_found']}"
             )
             self._render_scan_results(summary, findings)
-            self._append_feed(f"{summary['mode'].upper()} scan completed with risk {summary['local_scan_risk_score']}.")
+            self._append_feed(
+                f"{summary['scan_depth'].upper()} scan completed with adjusted risk {summary['local_scan_risk_score']} (policy={policy_mode})."
+            )
 
             event_payload = {
                 **summary,
@@ -588,9 +763,42 @@ class EtheriusApp:
             }
 
             # Advisory-only by design: scan reports and alerts, but does not auto-block business operations.
-            self._send_scan_event(event_payload)
+            if self.notify_manager_var.get():
+                self._send_scan_event(event_payload)
+            else:
+                self._append_feed("Manager notifications disabled for scan telemetry by policy setting.")
+
+            if policy_mode == "strict" and adjusted_score >= 85:
+                self._append_feed("Strict policy alert: isolate endpoint review recommended (manual manager decision).")
         except Exception as error:
             messagebox.showerror("Scan failed", str(error))
+
+    def _schedule_auto_scan(self, initial_delay_seconds=5):
+        self._cancel_auto_scan()
+        interval_minutes = self._safe_int(self.auto_scan_interval_var.get().strip(), 30)
+        if interval_minutes <= 0:
+            interval_minutes = 30
+        self.auto_scan_job = self.root.after(max(1, int(initial_delay_seconds)) * 1000, self._auto_scan_tick)
+        self._append_feed(f"Auto scan scheduler armed ({interval_minutes} minute interval).")
+
+    def _cancel_auto_scan(self):
+        if self.auto_scan_job:
+            try:
+                self.root.after_cancel(self.auto_scan_job)
+            except Exception:
+                pass
+            self.auto_scan_job = None
+
+    def _auto_scan_tick(self):
+        self.auto_scan_job = None
+        if not self.agent.running:
+            return
+        deep = self.policy_mode_var.get().strip().lower() == "strict" or random.random() < 0.25
+        self._run_local_scan(deep=deep)
+        interval_minutes = self._safe_int(self.auto_scan_interval_var.get().strip(), 30)
+        if interval_minutes <= 0:
+            interval_minutes = 30
+        self.auto_scan_job = self.root.after(interval_minutes * 60 * 1000, self._auto_scan_tick)
 
     def _send_scan_event(self, payload):
         if not self.employee_token_var.get().strip():
@@ -705,11 +913,16 @@ class EtheriusApp:
             "activation_code": self.employee_activation_var.get().strip(),
             "endpoint_id": self.employee_endpoint_id_var.get().strip(),
             "agent_token": self.employee_token_var.get().strip(),
+            "policy_mode": self.policy_mode_var.get().strip(),
+            "ai_sensitivity": self.ai_sensitivity_var.get(),
+            "auto_scan_interval": self.auto_scan_interval_var.get().strip(),
+            "notify_manager": bool(self.notify_manager_var.get()),
         }
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def _on_close(self):
+        self._cancel_auto_scan()
         try:
             self.agent.stop()
         except Exception:

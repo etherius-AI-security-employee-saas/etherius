@@ -1,73 +1,101 @@
 # Etherius Operations Manual
 
-## 1) Product Boundaries (Public vs Protected)
+## 1) Product Scope
+
+Etherius is delivered as one desktop software (`EtheriusSuite.exe`) for both manager and employee roles.
+
+1. Employee sees only employee protection flow by default.
+2. Manager dashboard appears only after manager action and successful manager authentication.
+3. CEO operations are separate in provider-only console.
+
+## 2) Public vs Protected
 
 ### Public
 
-1. Public website download page.
-2. Customer package download.
+1. Download website.
+2. Installer package endpoint.
+3. API health endpoint.
 
 ### Protected
 
-1. Customer dashboard data and controls (requires account + token).
-2. Customer registration (requires valid subscription key).
-3. CEO subscription issuance and customer fleet overview (requires CEO master key).
+1. Company registration (requires valid subscription key).
+2. Manager dashboard APIs (requires manager JWT).
+3. Employee enrollment/event APIs (requires active subscription and activation token).
+4. CEO licensing APIs (requires `X-CEO-Key`).
 
-## 2) CEO Workflow (Provider Side)
+## 3) CEO Runbook
 
-Use `ceo/CEO_START_CONSOLE.bat` (provider-only):
-
-1. Enter API URL and CEO master key.
-2. Issue a customer subscription key:
-   - seat limit (example: 100, 300)
+1. Open `ceo/CEO_START_CONSOLE.bat`.
+2. Enter API URL and CEO master key.
+3. Issue subscription key:
+   - employee seat limit (example: 300)
    - valid days
-   - company activations
-3. Send this subscription key privately to the customer admin.
-4. Use CEO customer overview table to monitor:
-   - seat usage
+   - max company activations
+4. Share subscription key privately with customer manager.
+5. Use customer overview table for:
+   - employees used/remaining
    - online endpoints
    - open alerts
-   - login/logout totals
+   - login/logout counts
 
-## 3) Customer Admin Workflow
+## 4) Customer Manager Runbook
 
-1. Install and open Etherius unified software (`EtheriusSuite.exe`).
-2. First-time setup:
-   - Go to `Admin Activation + Dashboard`
-   - Register company
-   - Enter subscription key from CEO
-3. Daily operations:
-   - Sign in in the same software
-   - Generate employee keys (based on purchased seat quantity)
-   - Share company code + employee key to each employee
-   - Track endpoint status, risk, alerts, and login/logout activity
-   - Review employee AI threat scan events in dashboard alerts
-
-If the customer does not have a valid subscription key, registration is blocked.
-
-## 4) Employee Workflow
-
-1. Install and open the same Etherius unified software (`EtheriusSuite.exe`).
-2. Enter:
+1. Install and open Etherius software.
+2. Click `Manager View`.
+3. Activate company with:
+   - company info
+   - manager email/password
+   - subscription key from CEO
+4. Sign in to unlock manager dashboard.
+5. Generate employee keys (capacity is limited by purchased seat count).
+6. Share to employees:
    - company enrollment code
-   - employee key
-   - backend URL (default is cloud API)
-3. Open `Employee Activation + Protection` tab.
-4. Enroll device and start protection.
-5. Telemetry is sent to company dashboard data.
+   - employee activation key
+7. Monitor:
+   - endpoint status
+   - open alerts
+   - scan telemetry
+   - login/logout activity
 
-## 5) What Is Enforced
+## 5) Employee Runbook
 
-1. Seat limits per customer subscription.
-2. Employee key activation limits.
-3. Tenant isolation by company ID.
-4. Dashboard API auth required.
-5. CEO-only endpoints protected by master key.
-6. Inactive/expired customer subscription blocks dashboard and agent API access.
-7. Employee protection works in advisory mode by default (alerts/insights, no forced auto-block of business-safe activity).
+1. Install the same Etherius software.
+2. Stay in `Employee Protection` view.
+3. Enter:
+   - API URL (pre-filled default)
+   - company enrollment code
+   - employee activation key
+4. Click:
+   - `Enroll Employee Device`
+   - `Apply Activation Code`
+   - `Start Protection`
+5. Optional:
+   - `Quick AI Threat Scan`
+   - `Deep Corporate Risk Scan`
 
-## 6) Current Live Production URLs
+## 6) AI Security Posture
 
-1. Public site: `https://etherius-security-site.vercel.app`
-2. Customer dashboard: `https://etherius-security-dashboard.vercel.app`
-3. API: `https://etherius-security-api.vercel.app`
+1. Process and command-line behavior heuristics.
+2. Suspicious network port pattern checks.
+3. Sensitive filesystem/script checks.
+4. Email lure indicator scoring.
+5. Local quick/deep scan intelligence sent to manager dashboard.
+6. Advisory-first defaults to avoid unnecessary blocking of business workflows.
+
+## 7) Cloud Requirements
+
+1. Website domain for distribution.
+2. API domain for activation + telemetry.
+3. Persistent production database (`DATABASE_URL` set to PostgreSQL recommended).
+
+## 8) Production Environment Baseline
+
+1. `ENV=production`
+2. `ENABLE_API_DOCS=false`
+3. `ENABLE_WEB_DASHBOARD=false`
+4. `ENABLE_DEMO_SEED=false`
+5. `SEED_COMPANY_DATA_ON_REGISTER=false`
+6. Strong values for:
+   - `SECRET_KEY`
+   - `AGENT_SECRET_KEY`
+   - `CEO_MASTER_KEY`

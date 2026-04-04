@@ -1,108 +1,66 @@
 # Etherius
 
-High-trust AI cybersecurity platform for employee endpoint protection, multi-tenant security operations, and license-controlled SaaS delivery.
+Enterprise endpoint security platform with one unified desktop software, license-controlled customer onboarding, and AI-assisted protection telemetry.
 
-[![Public Site](https://img.shields.io/badge/Public%20Site-Live-0a8fff?style=for-the-badge)](https://etherius-security-site.vercel.app)
-[![Dashboard](https://img.shields.io/badge/Dashboard-Live-18c9a6?style=for-the-badge)](https://etherius-security-dashboard.vercel.app)
-[![API](https://img.shields.io/badge/API-Live-f7a948?style=for-the-badge)](https://etherius-security-api.vercel.app/health)
+[![Website](https://img.shields.io/badge/Website-Live-f59f45?style=for-the-badge)](https://etherius-security-site.vercel.app)
+[![API](https://img.shields.io/badge/API-Live-3fd0a3?style=for-the-badge)](https://etherius-security-api.vercel.app/health)
 
-## Live Production Links
+## Production Surface
 
-1. Public Website: `https://etherius-security-site.vercel.app`
-2. Customer Dashboard API Surface: `https://etherius-security-dashboard.vercel.app`
-3. Backend API: `https://etherius-security-api.vercel.app`
-4. API Health Check: `https://etherius-security-api.vercel.app/health`
+1. Public website (download + manuals): `https://etherius-security-site.vercel.app`
+2. Backend API (activation, licensing, telemetry): `https://etherius-security-api.vercel.app`
 
-## Platform Scope
+Manager dashboard is inside the desktop software and is not exposed as a public webpage by default.
 
-Etherius is now shipped to customers as a single desktop software while still keeping a full platform backend:
+## Core Value
 
-1. **Provider/CEO Control Plane**
-   Subscription key issuance, seat licensing, and tenant provisioning.
-2. **Unified Customer Software**
-   One desktop app that includes admin activation/dashboard and employee activation/protection.
-3. **Protection Agent Runtime**
-   Telemetry collection, heartbeat, and event submission from enrolled endpoints.
-4. **Public Distribution Front Door**
-   Branded website for software delivery and product communication.
+1. One setup installer for both manager and employee.
+2. CEO-controlled subscription issuance with strict employee seat quantity.
+3. Manager dashboard unlocks only after subscription activation and manager sign-in.
+4. Employees use the same app in employee mode without admin controls.
+5. AI threat scoring, scan intelligence, and manager alert visibility.
+6. Login/logout activity tracking and endpoint fleet status in manager view.
 
-## What Makes Etherius Enterprise-Grade
+## Role Architecture
 
-1. Multi-tenant architecture with strict company isolation.
-2. Seat-based subscription enforcement (commercial quantity controls).
-3. Employee key lifecycle (issue/revoke/activation limits).
-4. AI-assisted risk scoring and alert explanation.
-5. Role-aware surface separation (provider vs customer vs employee).
-6. Branded Windows software with taskbar identity.
-7. Public web + API deployed as distinct internet domains.
-8. Advisory-first protection: AI detections alert managers without auto-blocking critical business workflows.
+1. CEO
+   Issues subscription keys, controls seat limits, tracks all customer fleets.
+2. Customer Manager
+   Activates company, generates employee keys, monitors endpoints and alerts.
+3. Employee
+   Activates endpoint protection and runs local AI scans in employee mode.
 
-## Domain Wiring (Where Domains Are Needed)
+## Security Controls
 
-### 1) Public marketing/download domain
-Used by prospects and customers to discover and download.
+1. Tenant isolation by company.
+2. Subscription enforcement at login/enrollment/event APIs.
+3. Employee key activation caps tied to purchased seats.
+4. CEO-only license issuance endpoints using `X-CEO-Key`.
+5. Advisory-first endpoint policy to avoid unnecessary business disruption.
+6. Optional strict mode raises sensitivity and escalation recommendations.
 
-### 2) Dashboard domain
-Used as backend dashboard API/web surface. Main customer operations are now in desktop software.
+## Cloud Requirements
 
-### 3) Backend API domain
-Used by:
-1. Dashboard frontend (API calls).
-2. Employee Shield clients (enrollment, heartbeat, events).
+1. Website domain (distribution + manuals).
+2. API domain (all software communication).
+3. Persistent production database (PostgreSQL recommended for cloud reliability).
 
-Without backend domain, dashboard and agents cannot operate globally.
+## Repository Areas
 
-## Repository Structure
+1. `suite/` unified desktop software (manager + employee views)
+2. `backend/` FastAPI service (auth, licensing, dashboard APIs, telemetry)
+3. `agent/` endpoint collectors and runtime client
+4. `ceo/` provider-only subscription control console
+5. `website/` premium public download website
+6. `installer/` setup packaging pipeline
+7. `docs/` operations and deployment manuals
 
-1. `backend/`  
-   FastAPI service, RBAC, tenant controls, licensing APIs, telemetry APIs.
+## Build Unified Setup
 
-2. `dashboard/`  
-   React + Vite dashboard surface (optional web access/API companion).
+1. `powershell -ExecutionPolicy Bypass -File installer\build_release.ps1`
+2. Output installer: `release\installer\Etherius-Setup.exe`
+3. Output binary: `release\bin\EtheriusSuite.exe`
 
-3. `agent/`  
-   Employee Shield desktop client and collectors.
+## Final Product Rule
 
-4. `suite/`  
-   Unified desktop product: admin activation + in-app dashboard + employee activation/protection.
-
-5. `website/`  
-   Public high-visual landing and download site (Vercel deployed).
-
-6. `installer/`  
-   Build and packaging pipeline for Windows distribution.
-
-7. `ceo/`  
-   Provider-only CEO console for issuing subscription keys and reviewing customer seat usage.
-
-8. `docs/OPERATIONS_MANUAL.md`  
-   End-to-end CEO, customer admin, and employee operating guide.
-
-## Security and Production Baseline
-
-1. `ENV=production`
-2. `ENABLE_API_DOCS=false`
-3. `ENABLE_DEMO_SEED=false`
-4. `SEED_COMPANY_DATA_ON_REGISTER=false`
-5. Strong `SECRET_KEY`, `AGENT_SECRET_KEY`, `CEO_MASTER_KEY`
-6. Explicit `CORS_ORIGINS` set to trusted dashboard/site domains
-
-## Deployment Status
-
-1. Public website deployed on Vercel.
-2. Dashboard surface deployed on Vercel (API companion).
-3. Backend API deployed on Vercel.
-4. Cross-domain CORS configured for dashboard + site.
-
-## One-Setup Rule
-
-Customer delivery is one setup and one app:
-
-1. Install `EtheriusSuite.exe` (single software).
-2. Customer manager activates company with subscription key.
-3. Employees use same software with employee activation key.
-4. No local backend start scripts are required for customer usage.
-
-## Product Vision
-
-Etherius is engineered to present premium UX while preserving hard security boundaries: a platform that looks elite, sells like SaaS, and operates like real security infrastructure.
+Etherius customer delivery is one software setup only. No customer source-code access is required.

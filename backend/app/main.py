@@ -1,14 +1,13 @@
-from pathlib import Path
-
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 
 from app.api import agent, auth, dashboard, licenses, response
 from app.config import settings
 from app.security.licenses import ensure_default_subscription_key
 
 API_DOCS_ENABLED = settings.ENABLE_API_DOCS and settings.ENV == "development"
+WEB_DASHBOARD_ENABLED = settings.ENABLE_WEB_DASHBOARD
 ALLOWED_ORIGINS = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 
 app = FastAPI(
@@ -46,20 +45,6 @@ app.include_router(dashboard.router)
 app.include_router(licenses.router)
 app.include_router(response.router)
 
-workspace_root = Path(__file__).resolve().parents[2]
-dashboard_dist = workspace_root / "dashboard" / "dist"
-
-
-def _resolve_dashboard_asset(path: str) -> Path | None:
-    if not path:
-        return None
-    candidate = (dashboard_dist / path).resolve()
-    if dashboard_dist.resolve() not in candidate.parents:
-        return None
-    if candidate.is_file():
-        return candidate
-    return None
-
 
 @app.get("/health", tags=["Health"])
 def health():
@@ -76,57 +61,11 @@ def health():
 
 @app.get("/", include_in_schema=False)
 def root():
-    if dashboard_dist.exists():
+    if WEB_DASHBOARD_ENABLED:
         return RedirectResponse(url="/dashboard")
     if API_DOCS_ENABLED:
         return RedirectResponse(url="/docs")
     return RedirectResponse(url="/health")
-
-
-@app.get("/dashboard", include_in_schema=False)
-@app.get("/dashboard/{path:path}", include_in_schema=False)
-def serve_dashboard(path: str = ""):
-    if not dashboard_dist.exists():
-        if API_DOCS_ENABLED:
-            return RedirectResponse(url="/docs")
-        return RedirectResponse(url="/health")
-    asset = _resolve_dashboard_asset(path)
-    if asset:
-        return FileResponse(asset)
-    return FileResponse(dashboard_dist / "index.html")
-
-
-@app.get("/assets/{path:path}", include_in_schema=False)
-def serve_dashboard_assets_compat(path: str):
-    if not dashboard_dist.exists():
-        raise HTTPException(status_code=404, detail="Dashboard assets are not available")
-    asset = _resolve_dashboard_asset(f"assets/{path}")
-    if asset:
-        return FileResponse(asset)
-    raise HTTPException(status_code=404, detail="Asset not found")
-
-
-@app.get("/etherius-logo.jpeg", include_in_schema=False)
-def serve_dashboard_logo_compat():
-    logo = dashboard_dist / "etherius-logo.jpeg"
-    if logo.exists():
-        return FileResponse(logo)
-    raise HTTPException(status_code=404, detail="Logo not found")
-
-
-@app.get("/login", include_in_schema=False)
-@app.get("/alerts", include_in_schema=False)
-@app.get("/endpoints", include_in_schema=False)
-@app.get("/incidents", include_in_schema=False)
-@app.get("/blocked", include_in_schema=False)
-@app.get("/audit", include_in_schema=False)
-@app.get("/settings", include_in_schema=False)
-def serve_dashboard_legacy_routes():
-    if not dashboard_dist.exists():
-        if API_DOCS_ENABLED:
-            return RedirectResponse(url="/docs")
-        return RedirectResponse(url="/health")
-    return FileResponse(dashboard_dist / "index.html")
 
 
 @app.on_event("startup")

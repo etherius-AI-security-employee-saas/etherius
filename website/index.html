@@ -3,130 +3,145 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Etherius | Enterprise Employee Security Platform</title>
+    <title>Etherius | Enterprise Endpoint Security Suite</title>
     <meta
       name="description"
-      content="Premium enterprise endpoint defense platform with role-separated admin and employee protection clients."
+      content="Etherius is a premium one-setup endpoint security suite with CEO license control, manager-only dashboard access, and employee AI protection."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" type="image/png" href="./assets/etherius-suite.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="backdrop-grid"></div>
-    <div class="backdrop-noise"></div>
-    <div class="light-blob light-blob-a"></div>
-    <div class="light-blob light-blob-b"></div>
+    <div class="fx fx-a"></div>
+    <div class="fx fx-b"></div>
+    <div class="fx fx-c"></div>
+    <div class="grid"></div>
 
-    <header class="site-header">
+    <header class="topbar">
       <div class="brand">
         <img src="./assets/etherius-suite.png" alt="Etherius logo" />
         <div>
-          <div class="brand-title">etherius</div>
-          <div class="brand-subtitle">Security Experience Platform</div>
+          <strong>ETHERIUS</strong>
+          <span>Corporate Security Suite</span>
         </div>
       </div>
-      <div class="header-actions">
-        <a class="btn btn-primary" href="#download">Download Suite</a>
-      </div>
+      <a class="btn btn-primary" href="#download">Download Setup</a>
     </header>
 
     <main class="container">
-      <section class="hero panel">
-        <div class="hero-copy">
-          <p class="eyebrow">ENTERPRISE ENDPOINT DEFENSE</p>
-          <h1>Cybersecurity that looks elite and operates with precision.</h1>
+      <section class="hero card">
+        <div>
+          <p class="tag">ONE SETUP. ROLE-LOCKED ACCESS. AI-POWERED PROTECTION.</p>
+          <h1>Premium cyber defense for modern companies.</h1>
           <p>
-            Etherius ships as a premium security suite with strict subscription controls, elegant operations UI, and
-            instant employee endpoint enrollment.
+            Etherius runs as one desktop software. Managers get dashboard controls only after license activation.
+            Employees use the same app for protected endpoint mode without admin control access.
           </p>
           <div class="hero-actions">
-            <a id="download-main" class="btn btn-primary" href="#download">Get Etherius Now</a>
-          </div>
-          <div class="hero-stat-grid">
-            <article>
-              <strong>Seat Controlled</strong>
-              <span>Sell exactly 100, 300, or 1000 employees</span>
-            </article>
-            <article>
-              <strong>Tenant Isolated</strong>
-              <span>Customer data stays inside customer boundaries</span>
-            </article>
-            <article>
-              <strong>Shield Activated</strong>
-              <span>Employee client starts protected telemetry flow</span>
-            </article>
+            <a class="btn btn-primary" href="#download">Get Etherius Setup</a>
+            <a class="btn btn-muted" href="#manuals">Read Full Manual</a>
           </div>
         </div>
-        <div class="hero-visual">
-          <div class="halo-core">
-            <div class="halo-ring halo-ring-1"></div>
-            <div class="halo-ring halo-ring-2"></div>
-            <div class="halo-ring halo-ring-3"></div>
-            <div class="halo-center">
-              <span>ETHERIUS CORE</span>
-              <strong>LIVE</strong>
-            </div>
-          </div>
-          <div class="visual-captions">
-            <p>Realtime telemetry and license enforcement engine online</p>
+        <div class="hero-orb">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <div class="core">
+            <span>ETHERIUS CORE</span>
+            <strong>ACTIVE</strong>
           </div>
         </div>
       </section>
 
-      <section class="capability-grid">
-        <article class="panel capability-card">
-          <h3>CEO Subscription Control</h3>
-          <p>Create customer subscriptions with strict employee quantity limits and expiry windows.</p>
+      <section class="kpi-grid">
+        <article class="card">
+          <h3>Seat-Limited Licensing</h3>
+          <p>Sell exact employee capacity per customer (example: 300 seats).</p>
         </article>
-        <article class="panel capability-card">
-          <h3>Customer Admin Command</h3>
-          <p>Generate employee keys, track endpoint state, and monitor alert posture from one dashboard.</p>
+        <article class="card">
+          <h3>Manager-Only Dashboard</h3>
+          <p>Dashboard stays hidden from employee mode and opens only with manager credentials.</p>
         </article>
-        <article class="panel capability-card">
-          <h3>Employee Shield Client</h3>
-          <p>Guided enrollment, always-on event feed, and defense-ready status with zero dashboard access required.</p>
+        <article class="card">
+          <h3>AI Security Engine</h3>
+          <p>Behavior analysis, threat scanning, and high-risk alert escalation to manager view.</p>
         </article>
       </section>
 
-      <section class="panel flow">
-        <h2>Deployment Flow</h2>
+      <section class="card flow">
+        <h2>Activation Flow</h2>
         <div class="flow-grid">
-          <div class="flow-step"><span>01</span><p>Issue customer subscription seats from provider console.</p></div>
-          <div class="flow-step"><span>02</span><p>Customer admin registers and creates employee keys.</p></div>
-          <div class="flow-step"><span>03</span><p>Employee installs Shield and enrolls with secure key pair.</p></div>
-          <div class="flow-step"><span>04</span><p>Dashboard starts receiving endpoint telemetry and threat insights.</p></div>
+          <div><span>1</span><p>CEO issues customer subscription key with fixed employee quantity.</p></div>
+          <div><span>2</span><p>Customer manager installs same software and activates with subscription key.</p></div>
+          <div><span>3</span><p>Manager generates employee keys inside software (within purchased seat limit).</p></div>
+          <div><span>4</span><p>Employees activate in same software and protection data streams to manager dashboard.</p></div>
         </div>
       </section>
 
-      <section id="download" class="panel download">
-        <div class="download-copy">
-          <h2>Download Etherius Suite</h2>
-          <p>Production package includes customer admin and employee software with role-separated onboarding.</p>
-          <ul>
-            <li>Premium-branded Windows desktop applications</li>
-            <li>Customer admin manual and employee manual included</li>
-            <li>License-first activation and protected endpoint startup</li>
-          </ul>
+      <section id="manuals" class="manual-grid">
+        <article class="card manual">
+          <h3>CEO Manual</h3>
+          <ol>
+            <li>Open CEO console and set API URL + CEO master key.</li>
+            <li>Issue subscription key with employee quantity and validity days.</li>
+            <li>Share subscription key privately with customer manager.</li>
+            <li>Monitor all companies, seats used, online endpoints, alerts, and login/logout counts.</li>
+          </ol>
+        </article>
+        <article class="card manual">
+          <h3>Customer Manager Manual</h3>
+          <ol>
+            <li>Install Etherius setup and open software.</li>
+            <li>Switch to Manager View and activate company with subscription key.</li>
+            <li>Sign in to unlock in-app dashboard and generate employee activation keys.</li>
+            <li>Track endpoints, alerts, protection status, and employee login/logout activity.</li>
+          </ol>
+        </article>
+        <article class="card manual">
+          <h3>Employee Manual</h3>
+          <ol>
+            <li>Install the same Etherius setup.</li>
+            <li>Stay in Employee View and enter company code + employee key.</li>
+            <li>Enroll device, apply activation code, start protection.</li>
+            <li>Run AI quick/deep scans while manager receives threat telemetry.</li>
+          </ol>
+        </article>
+      </section>
+
+      <section class="card cloud">
+        <h2>Cloud Requirements</h2>
+        <ul>
+          <li>Public website domain for distribution and manuals.</li>
+          <li>Secure API domain for activation, telemetry, and manager dashboard data.</li>
+          <li>Production database (PostgreSQL recommended) for persistent customer and endpoint data.</li>
+        </ul>
+      </section>
+
+      <section id="download" class="card download">
+        <div>
+          <h2>Download Etherius Setup</h2>
+          <p>
+            One installer for both manager and employee usage. Role access is enforced inside the software by
+            activation key and account permissions.
+          </p>
+          <p class="secure-note">Public page does not expose private dashboard routes or internal admin controls.</p>
         </div>
-        <div class="download-cta">
-          <a id="download-package" class="btn btn-primary btn-block" href="https://github.com/etherius-AI-security-employee-saas/etherius/releases/latest/download/Etherius-Customer-Package.zip">
-            Download Secure Package
-          </a>
-          <p class="private-note">Customer dashboard access is shared privately with subscribed customer admins only.</p>
-          <p id="release-status" class="release-status">Preparing latest package link...</p>
+        <div class="download-box">
+          <a id="download-package" class="btn btn-primary btn-block" href="/api/download">Download Secure Setup</a>
+          <p id="release-status">Checking latest secure build...</p>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <p>Etherius Security Suite</p>
-      <p>Built for premium endpoint operations and real subscription control.</p>
+    <footer class="footer">
+      <p>Etherius Security Platform</p>
+      <p>Enterprise-grade endpoint protection with controlled subscription operations.</p>
     </footer>
 
     <script src="./app.js"></script>
