@@ -29,12 +29,24 @@ def stats(db: Session = Depends(get_db), u: User = Depends(get_current_user)):
         func.date(Event.created_at) == func.current_date()
     ).count()
     blocked_ips = db.query(BlockedIP).filter(BlockedIP.company_id == cid, BlockedIP.is_active == True).count()
+    login_events_today = db.query(Event).filter(
+        Event.company_id == cid,
+        Event.event_type == "employee_login",
+        func.date(Event.created_at) == func.current_date()
+    ).count()
+    logout_events_today = db.query(Event).filter(
+        Event.company_id == cid,
+        Event.event_type == "employee_logout",
+        func.date(Event.created_at) == func.current_date()
+    ).count()
     return {
         "total_endpoints": total_ep, "online_endpoints": online_ep,
         "offline_endpoints": total_ep - online_ep,
         "open_alerts": open_alerts, "critical_alerts": critical,
         "high_alerts": high, "events_today": today_events,
-        "blocked_ips": blocked_ips
+        "blocked_ips": blocked_ips,
+        "login_events_today": login_events_today,
+        "logout_events_today": logout_events_today,
     }
 
 @router.get("/alerts", response_model=List[AlertOut])
@@ -67,7 +79,66 @@ def endpoint_events(endpoint_id: str, limit: int = Query(50, le=200),
     if not ep: raise HTTPException(404, "Endpoint not found")
     evs = db.query(Event).filter(Event.endpoint_id == endpoint_id).order_by(desc(Event.created_at)).limit(limit).all()
     return [{"id":e.id,"event_type":e.event_type,"severity":e.severity,
-             "risk_score":e.risk_score,"created_at":e.created_at} for e in evs]
+             "risk_score":e.risk_score,"payload":e.payload,"created_at":e.created_at} for e in evs]
+
+
+@router.get("/login-activity")
+def login_activity(
+    days: int = Query(7, ge=1, le=30),
+    db: Session = Depends(get_db),
+    u: User = Depends(get_current_user),
+):
+    cid = u.company_id
+    endpoints = db.query(Endpoint).filter(Endpoint.company_id == cid).all()
+    login_events = (
+        db.query(Event)
+        .filter(
+            Event.company_id == cid,
+            Event.event_type.in_(["employee_login", "employee_logout"]),
+        )
+        .order_by(desc(Event.created_at))
+        .all()
+    )
+
+    summary = {}
+    for endpoint in endpoints:
+        summary[endpoint.id] = {
+            "endpoint_id": endpoint.id,
+            "hostname": endpoint.hostname,
+            "status": endpoint.status,
+            "logins_today": 0,
+            "logouts_today": 0,
+            "logins_last_7_days": 0,
+            "logouts_last_7_days": 0,
+            "last_login_at": None,
+            "last_logout_at": None,
+        }
+
+    from datetime import datetime, timedelta
+
+    seven_days_ago = datetime.utcnow() - timedelta(days=days)
+    for event in login_events:
+        item = summary.get(event.endpoint_id)
+        if not item:
+            continue
+        is_today = event.created_at and event.created_at.date() == datetime.utcnow().date()
+        is_recent = event.created_at and event.created_at >= seven_days_ago
+        if event.event_type == "employee_login":
+            if is_today:
+                item["logins_today"] += 1
+            if is_recent:
+                item["logins_last_7_days"] += 1
+            if item["last_login_at"] is None:
+                item["last_login_at"] = event.created_at
+        elif event.event_type == "employee_logout":
+            if is_today:
+                item["logouts_today"] += 1
+            if is_recent:
+                item["logouts_last_7_days"] += 1
+            if item["last_logout_at"] is None:
+                item["last_logout_at"] = event.created_at
+
+    return list(summary.values())
 
 @router.get("/blocked-ips")
 def blocked_ips(db: Session = Depends(get_db), u: User = Depends(get_current_user)):

@@ -12,7 +12,8 @@ SENSITIVE_PATHS = [
 ]
 SUSPICIOUS_EMAIL_KEYWORDS = [
     "urgent", "verify account", "password reset", "invoice attached",
-    "gift card", "wire transfer", "login now", "unusual sign-in"
+    "gift card", "wire transfer", "login now", "unusual sign-in",
+    "mfa expired", "confirm payroll", "document shared", "security alert"
 ]
 
 def analyze_process(payload: Dict) -> Dict:
@@ -76,9 +77,12 @@ def analyze_email(payload: Dict) -> Dict:
     if keyword_hits:
         score += min(20 * len(keyword_hits), 60)
         flags.append("Phishing language indicators detected")
-    if any(ext in text for ext in [".zip", ".exe", ".html", ".iso", ".scr"]):
+    if any(ext in text for ext in [".zip", ".exe", ".html", ".iso", ".scr", ".js", ".vbs", ".hta", ".lnk"]):
         score += 35
         flags.append("Suspicious attachment type referenced")
+    if any(token in text for token in ["enable content", "enable macros", "macro", "password protected"]):
+        score += 20
+        flags.append("Potential malicious document lure")
     if "http://" in text or "bit.ly" in text or "tinyurl" in text:
         score += 30
         flags.append("Shortened or insecure link found")
@@ -88,7 +92,16 @@ def analyze_email(payload: Dict) -> Dict:
     return {"score": min(score, 100), "flags": flags}
 
 def analyze_event(event_type: str, payload: Dict) -> Dict:
-    fn = {"process":analyze_process,"network":analyze_network,"login":analyze_login,"file":analyze_file,"email":analyze_email}
+    fn = {
+        "process": analyze_process,
+        "network": analyze_network,
+        "login": analyze_login,
+        "session_heartbeat": analyze_login,
+        "employee_login": analyze_login,
+        "employee_logout": analyze_login,
+        "file": analyze_file,
+        "email": analyze_email,
+    }
     result = fn.get(event_type, lambda p: {"score":0,"flags":[]})(payload)
     result["category"] = event_type
     return result

@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
+from app.models.company import Company
+from app.models.event import Event
+from app.models.alert import Alert
 from app.models.endpoint import Endpoint
 from app.models.license_key import LicenseKey
 from app.models.user import User
@@ -41,12 +44,26 @@ def subscription_status(
             "employee_limit": 0,
             "employees_used": db.query(func.count(Endpoint.id)).filter(Endpoint.company_id == current_user.company_id).scalar(),
             "employee_seats_remaining": 0,
+            "employee_key_capacity_allocated": 0,
+            "employee_key_capacity_remaining": 0,
         }
 
     is_valid = key.is_active and (not key.expires_at or key.expires_at >= datetime.utcnow())
     employees_used = db.query(func.count(Endpoint.id)).filter(Endpoint.company_id == current_user.company_id).scalar()
     employee_limit = int(key.seat_limit or 0)
     seats_remaining = max(employee_limit - employees_used, 0) if employee_limit > 0 else 0
+    allocated_capacity = (
+        db.query(func.coalesce(func.sum(LicenseKey.max_activations), 0))
+        .filter(
+            LicenseKey.company_id == current_user.company_id,
+            LicenseKey.key_type == "employee",
+            LicenseKey.is_active == True,
+            (LicenseKey.expires_at.is_(None) | (LicenseKey.expires_at >= datetime.utcnow())),
+        )
+        .scalar()
+        or 0
+    )
+    key_capacity_remaining = max(employee_limit - int(allocated_capacity), 0) if employee_limit > 0 else 0
     return {
         "status": "active" if is_valid else "expired",
         "is_active": is_valid,
@@ -57,6 +74,8 @@ def subscription_status(
         "current_activations": key.current_activations,
         "employees_used": employees_used,
         "employee_seats_remaining": seats_remaining,
+        "employee_key_capacity_allocated": int(allocated_capacity),
+        "employee_key_capacity_remaining": key_capacity_remaining,
     }
 
 
@@ -79,14 +98,24 @@ def create_employee_key(
         raise HTTPException(403, "Active customer subscription is required before generating employee keys")
 
     employee_limit = int(subscription.seat_limit or 0)
-    employees_used = db.query(func.count(Endpoint.id)).filter(Endpoint.company_id == current_user.company_id).scalar()
-    seats_remaining = max(employee_limit - employees_used, 0) if employee_limit > 0 else 0
+    allocated_capacity = (
+        db.query(func.coalesce(func.sum(LicenseKey.max_activations), 0))
+        .filter(
+            LicenseKey.company_id == current_user.company_id,
+            LicenseKey.key_type == "employee",
+            LicenseKey.is_active == True,
+            (LicenseKey.expires_at.is_(None) | (LicenseKey.expires_at >= datetime.utcnow())),
+        )
+        .scalar()
+        or 0
+    )
+    seats_remaining = max(employee_limit - int(allocated_capacity), 0) if employee_limit > 0 else 0
     requested_activations = max(int(payload.max_activations or 1), 1)
     if employee_limit > 0:
         if seats_remaining <= 0:
-            raise HTTPException(403, f"No employee seats remaining in this subscription ({employee_limit} total)")
+            raise HTTPException(403, f"No employee key capacity remaining in this subscription ({employee_limit} total seats)")
         if requested_activations > seats_remaining:
-            raise HTTPException(400, f"Requested max activations ({requested_activations}) exceeds remaining seats ({seats_remaining})")
+            raise HTTPException(400, f"Requested max activations ({requested_activations}) exceeds remaining key capacity ({seats_remaining})")
 
     license_key = create_employee_license(
         db=db,
@@ -178,3 +207,66 @@ def issue_subscription_key(
     db.commit()
     db.refresh(subscription)
     return subscription
+
+
+@router.get("/ceo/customers")
+def ceo_customers(
+    x_ceo_key: str = Header(default=""),
+    db: Session = Depends(get_db),
+):
+    if x_ceo_key != settings.CEO_MASTER_KEY:
+        raise HTTPException(401, "Invalid CEO master key")
+
+    companies = db.query(Company).order_by(Company.created_at.desc()).all()
+    result = []
+    for company in companies:
+        seat_limit = int(company.max_endpoints or 0)
+        endpoints_total = db.query(func.count(Endpoint.id)).filter(Endpoint.company_id == company.id).scalar() or 0
+        endpoints_online = (
+            db.query(func.count(Endpoint.id))
+            .filter(Endpoint.company_id == company.id, Endpoint.status == "online")
+            .scalar()
+            or 0
+        )
+        open_alerts = (
+            db.query(func.count(Alert.id))
+            .filter(Alert.company_id == company.id, Alert.status == "open")
+            .scalar()
+            or 0
+        )
+        login_events_today = (
+            db.query(func.count(Event.id))
+            .filter(
+                Event.company_id == company.id,
+                Event.event_type == "employee_login",
+                func.date(Event.created_at) == func.current_date(),
+            )
+            .scalar()
+            or 0
+        )
+        logout_events_today = (
+            db.query(func.count(Event.id))
+            .filter(
+                Event.company_id == company.id,
+                Event.event_type == "employee_logout",
+                func.date(Event.created_at) == func.current_date(),
+            )
+            .scalar()
+            or 0
+        )
+        result.append(
+            {
+                "company_id": company.id,
+                "company_name": company.name,
+                "subscription_status": company.subscription_status,
+                "subscription_expires_at": company.subscription_expires_at,
+                "seat_limit": seat_limit,
+                "employees_used": endpoints_total,
+                "employees_remaining": max(seat_limit - endpoints_total, 0) if seat_limit > 0 else 0,
+                "online_endpoints": endpoints_online,
+                "open_alerts": open_alerts,
+                "login_events_today": login_events_today,
+                "logout_events_today": logout_events_today,
+            }
+        )
+    return result

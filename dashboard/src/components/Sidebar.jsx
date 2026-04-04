@@ -17,7 +17,7 @@ const CUSTOMER_NAV = [
   { to: '/', icon: BarChart3, label: 'Overview' },
   { to: '/alerts', icon: AlertTriangle, label: 'Alerts' },
   { to: '/endpoints', icon: Monitor, label: 'Employees' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/employee-access', icon: Settings, label: 'Employee Access' },
 ]
 
 export default function Sidebar() {

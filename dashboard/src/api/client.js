@@ -13,7 +13,10 @@ api.interceptors.request.use(cfg => {
 })
 
 api.interceptors.response.use(r => r, err => {
-  if (err.response?.status === 401) {
+  const status = err.response?.status
+  const detail = String(err.response?.data?.detail || '').toLowerCase()
+  const subscriptionBlocked = status === 403 && detail.includes('subscription')
+  if (status === 401 || subscriptionBlocked) {
     localStorage.removeItem('etherius_token')
     localStorage.removeItem('etherius_user')
     window.location.href = loginPath
@@ -35,6 +38,7 @@ export const dashboardAPI = {
   updateAlert: (id, data) => api.patch(`/api/dashboard/alerts/${id}`, data),
   endpoints: () => api.get('/api/dashboard/endpoints'),
   endpointEvents: (id) => api.get(`/api/dashboard/endpoints/${id}/events`),
+  loginActivity: (params) => api.get('/api/dashboard/login-activity', { params }),
   blockedIPs: () => api.get('/api/dashboard/blocked-ips'),
   auditLogs: () => api.get('/api/dashboard/audit-logs'),
 }

@@ -15,6 +15,7 @@ const routerBasename = import.meta.env.VITE_ROUTER_BASENAME || (import.meta.env.
 function Layout() {
   const { user, loading } = useAuth()
   const canUsePrivilegedOps = ['admin', 'superadmin'].includes(user?.role)
+  const isCustomerManager = user?.role === 'manager'
 
   if (loading) {
     return (
@@ -62,10 +63,11 @@ function Layout() {
           <Route index element={<Dashboard />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/endpoints" element={<Endpoints />} />
+          <Route path="/employee-access" element={isCustomerManager ? <Settings /> : <Navigate to="/" replace />} />
           <Route path="/incidents" element={canUsePrivilegedOps ? <Incidents /> : <Navigate to="/" replace />} />
           <Route path="/blocked" element={canUsePrivilegedOps ? <BlockedIPs /> : <Navigate to="/" replace />} />
           <Route path="/audit" element={canUsePrivilegedOps ? <AuditLog /> : <Navigate to="/" replace />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={canUsePrivilegedOps ? <Settings /> : <Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

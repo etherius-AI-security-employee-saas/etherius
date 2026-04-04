@@ -1,3 +1,5 @@
+import os
+import platform
 import queue
 import threading
 import time
@@ -72,6 +74,18 @@ class EtheriusAgent:
         finally:
             self._emit_status()
 
+    def _session_payload(self):
+        username = ""
+        try:
+            username = os.getlogin()
+        except Exception:
+            username = os.environ.get("USERNAME", "unknown")
+        return {
+            "username": username,
+            "platform": platform.system(),
+            "hour_of_day": datetime.now().hour,
+        }
+
     def _sender_loop(self):
         while self.running:
             try:
@@ -93,6 +107,11 @@ class EtheriusAgent:
         for collector in self.collectors:
             collector.start()
         threading.Thread(target=self._sender_loop, daemon=True).start()
+        self._send({
+            "event_type": "employee_login",
+            "severity": "info",
+            "payload": self._session_payload(),
+        })
         self._emit_event({
             "kind": "system",
             "event_type": "agent_started",
@@ -111,6 +130,11 @@ class EtheriusAgent:
     def stop(self):
         if not self.running:
             return
+        self._send({
+            "event_type": "employee_logout",
+            "severity": "info",
+            "payload": self._session_payload(),
+        })
         self.running = False
         self.heartbeat.stop()
         for collector in self.collectors:

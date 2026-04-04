@@ -9,6 +9,7 @@ export default function Endpoints() {
   const [endpoints, setEndpoints] = useState([])
   const [selected, setSelected] = useState(null)
   const [events, setEvents] = useState([])
+  const [loginActivity, setLoginActivity] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [newEp, setNewEp] = useState({ hostname: '', os: 'Windows', ip_address: '', mac_address: '' })
   const [agentResult, setAgentResult] = useState(null)
@@ -28,7 +29,12 @@ export default function Endpoints() {
     }
   }).catch(console.error)
 
-  useEffect(() => { fetch() }, [])
+  const fetchLoginActivity = () => dashboardAPI.loginActivity({ days: 7 }).then(r => setLoginActivity(r.data)).catch(console.error)
+
+  useEffect(() => {
+    fetch()
+    fetchLoginActivity()
+  }, [])
 
   const selectEp = ep => {
     setSelected(ep)
@@ -72,10 +78,14 @@ export default function Endpoints() {
   }
 
   const rolloutConfig = agentResult ? `{\n  "backend_url": "${resolvedBackendUrl}",\n  "activation_code": "${agentResult.activation_code}",\n  "agent_token": "${agentResult.agent_token}",\n  "endpoint_id": "${agentResult.endpoint_id}",\n  "heartbeat_interval": 30,\n  "event_batch_interval": 10,\n  "version": "1.0.0"\n}` : null
+  const refreshAll = () => {
+    fetch()
+    fetchLoginActivity()
+  }
 
   return (
     <div>
-      <Topbar title="Endpoint Fleet" subtitle={`${endpoints.length} employee devices connected to Etherius`} onRefresh={fetch} />
+      <Topbar title="Endpoint Fleet" subtitle={`${endpoints.length} employee devices connected to Etherius`} onRefresh={refreshAll} />
       <div className="page-wrap">
         <div className="grid-two" style={{ marginBottom: 18 }}>
           <div className="panel" style={{ padding: 20 }}>
@@ -146,7 +156,7 @@ export default function Endpoints() {
                         </div>
                         <div>
                           <div style={{ fontWeight: 800, fontSize: 15 }}>{ep.hostname}</div>
-                          <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>{ep.os} · {ep.ip_address || 'No IP recorded'}</div>
+                          <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>{ep.os} - {ep.ip_address || 'No IP recorded'}</div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -185,6 +195,27 @@ export default function Endpoints() {
               <div className="soft-note"><strong>3.</strong> Paste them into <span className="kbd-box">agent/agent_config.json</span> on the employee machine.</div>
               <div className="soft-note"><strong>4.</strong> Run <span className="kbd-box">EMPLOYEE_START_SHIELD.bat</span> on that machine.</div>
             </div>
+
+            <div style={{ color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+              Login Activity (7 Days)
+            </div>
+            {loginActivity.length === 0 ? (
+              <div className="soft-note" style={{ marginBottom: 16 }}>No login/logout activity recorded yet.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+                {loginActivity.slice(0, 8).map(item => (
+                  <div key={item.endpoint_id} className="soft-note">
+                    <div style={{ fontWeight: 800 }}>{item.hostname}</div>
+                    <div style={{ marginTop: 6, fontSize: 12 }}>
+                      Today: {item.logins_today} logins / {item.logouts_today} logouts
+                    </div>
+                    <div style={{ marginTop: 4, color: 'var(--muted)', fontSize: 12 }}>
+                      7d: {item.logins_last_7_days} logins / {item.logouts_last_7_days} logouts
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {selected ? (
               <>

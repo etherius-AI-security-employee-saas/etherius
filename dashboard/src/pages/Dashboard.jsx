@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, AlertTriangle, Ban, Monitor, Shield, Zap } from 'lucide-react'
+import { Activity, AlertTriangle, Ban, LogIn, LogOut, Monitor, Shield, Zap } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { dashboardAPI } from '../api/client'
 import AlertCard from '../components/AlertCard'
@@ -65,6 +65,8 @@ export default function Dashboard() {
           <StatCard icon={AlertTriangle} label="Open Alerts" value={stats?.open_alerts} color="#ffb347" />
           <StatCard icon={Zap} label="Critical" value={stats?.critical_alerts} color="#ff6b6b" sub="Needs immediate attention" />
           <StatCard icon={Activity} label="Events Today" value={stats?.events_today} color="#51d0a1" />
+          <StatCard icon={LogIn} label="Logins Today" value={stats?.login_events_today} color="#5cc8ff" />
+          <StatCard icon={LogOut} label="Logouts Today" value={stats?.logout_events_today} color="#ffba52" />
           <StatCard icon={Ban} label="Blocked IPs" value={stats?.blocked_ips} color="#ffd166" />
         </div>
 

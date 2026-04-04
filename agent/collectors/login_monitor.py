@@ -6,8 +6,8 @@ class LoginMonitor:
         self.q = q; self.running = False
 
     def _collect(self):
-        self.q.put({"event_type":"login","severity":"info","payload":{
-            "login_type":"heartbeat","hour_of_day":datetime.now().hour,
+        self.q.put({"event_type":"session_heartbeat","severity":"info","payload":{
+            "session_type":"active","hour_of_day":datetime.now().hour,
             "failed_attempts":0,"is_remote":False,"platform":platform.system()
         }})
 

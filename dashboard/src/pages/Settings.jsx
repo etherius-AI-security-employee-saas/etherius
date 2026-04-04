@@ -9,6 +9,7 @@ const emptyEmployeeLicense = { label: '', max_activations: 1, valid_days: 365 }
 
 export default function Settings() {
   const { user } = useAuth()
+  const isManager = user?.role === 'manager'
   const [users, setUsers] = useState([])
   const [newUser, setNewUser] = useState(emptyUser)
   const [newEmployeeLicense, setNewEmployeeLicense] = useState(emptyEmployeeLicense)
@@ -92,7 +93,10 @@ export default function Settings() {
 
   return (
     <div>
-      <Topbar title="Settings & Access" subtitle="Manage admins, subscriptions, and employee deployment keys" />
+      <Topbar
+        title={isManager ? "Employee Access" : "Settings & Access"}
+        subtitle={isManager ? "Manage employee keys, enrollment, and subscription usage" : "Manage admins, subscriptions, and employee deployment keys"}
+      />
       <div className="page-wrap">
         <div className="grid-two">
           <div>

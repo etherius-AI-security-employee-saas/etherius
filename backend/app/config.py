@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     ENABLE_DEMO_SEED: bool = False
     SEED_COMPANY_DATA_ON_REGISTER: bool = False
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:4173"
+    PUBLIC_API_BASE_URL: str = "http://localhost:8000"
     DATABASE_URL: str = "sqlite:///./etherius.db"
     SECRET_KEY: str = "etherius_super_secret_key_change_in_production_2024"
     AGENT_SECRET_KEY: str = "etherius_agent_secret_key_change_in_production_2024"

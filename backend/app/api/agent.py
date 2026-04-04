@@ -13,11 +13,18 @@ from app.security.enrollment import parse_company_code
 from app.security.jwt_handler import create_agent_token
 from app.security.licenses import validate_employee_key
 from app.security.rbac import require_min_role
+from app.security.subscription_guard import has_active_company_subscription
 from app.ai.risk_engine import calculate_risk, build_alert_title
 from app.ai.explain_ai import generate_explanation
 from app.utils.audit import log_action
+from app.config import settings
 
 router = APIRouter(prefix="/api/agent", tags=["Agent"])
+
+
+def _activation_code(endpoint_id: str, token: str) -> str:
+    base = (settings.PUBLIC_API_BASE_URL or "http://localhost:8000").strip().rstrip("/")
+    return f"{base}|{endpoint_id}|{token}"
 
 @router.post("/register", status_code=201)
 def register_endpoint(data: EndpointRegister, db: Session = Depends(get_db),
@@ -32,7 +39,7 @@ def register_endpoint(data: EndpointRegister, db: Session = Depends(get_db),
     token = create_agent_token(ep.id, current_user.company_id)
     ep.agent_token = token; db.commit()
     log_action(db, current_user.id, current_user.company_id, "REGISTER_ENDPOINT", "endpoint", ep.id)
-    activation_code = f"http://localhost:8000|{ep.id}|{token}"
+    activation_code = _activation_code(ep.id, token)
     return {"endpoint_id": ep.id, "agent_token": token,
             "activation_code": activation_code,
             "message": "Endpoint registered. Save agent_token securely."}
@@ -45,6 +52,8 @@ def enroll_endpoint(data: EndpointEnroll, db: Session = Depends(get_db)):
     company = db.query(Company).filter(Company.id == company_id, Company.is_active == True).first()
     if not company:
         raise HTTPException(404, "Company not found")
+    if not has_active_company_subscription(db, company_id):
+        raise HTTPException(403, "Customer subscription is inactive or expired")
 
     existing = db.query(Endpoint).filter(
         Endpoint.company_id == company_id,
@@ -79,7 +88,7 @@ def enroll_endpoint(data: EndpointEnroll, db: Session = Depends(get_db)):
             employee_license.last_used_at = datetime.utcnow()
             employee_license.used_by_endpoint_id = existing.id
         db.commit()
-        activation_code = f"http://localhost:8000|{existing.id}|{token}"
+        activation_code = _activation_code(existing.id, token)
         return {
             "endpoint_id": existing.id,
             "agent_token": token,
@@ -104,7 +113,7 @@ def enroll_endpoint(data: EndpointEnroll, db: Session = Depends(get_db)):
         employee_license.last_used_at = datetime.utcnow()
         employee_license.used_by_endpoint_id = ep.id
     db.commit()
-    activation_code = f"http://localhost:8000|{ep.id}|{token}"
+    activation_code = _activation_code(ep.id, token)
     return {
         "endpoint_id": ep.id,
         "agent_token": token,

@@ -71,6 +71,12 @@ Without backend domain, dashboard and agents cannot operate globally.
 6. `installer/`  
    Build and packaging pipeline for Windows distribution.
 
+7. `ceo/`  
+   Provider-only CEO console for issuing subscription keys and reviewing customer seat usage.
+
+8. `docs/OPERATIONS_MANUAL.md`  
+   End-to-end CEO, customer admin, and employee operating guide.
+
 ## Security and Production Baseline
 
 1. `ENV=production`

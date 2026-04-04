@@ -16,6 +16,7 @@ from app.security.jwt_handler import create_access_token, create_refresh_token
 from app.security.dependencies import get_current_user
 from app.security.rbac import require_min_role
 from app.security.licenses import validate_subscription_key
+from app.security.subscription_guard import enforce_active_company_subscription
 from app.utils.demo_seed import seed_company_data
 from app.utils.audit import log_action
 
@@ -124,6 +125,7 @@ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
     if not user or not verify_password(data.password, user.password_hash):
         _record_failed_login(key)
         raise HTTPException(401, "Invalid credentials")
+    enforce_active_company_subscription(db, user.company_id, detail="Customer subscription is inactive or expired")
     if user.role not in {"admin", "superadmin", "manager"}:
         raise HTTPException(403, "Dashboard access is restricted to admin accounts")
     _clear_failed_login(key)
