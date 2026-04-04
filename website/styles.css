@@ -307,18 +307,12 @@ h1 {
   line-height: 1.56;
 }
 
-.manual-grid {
+.tutorial {
   margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  padding: 22px;
 }
 
-.manual {
-  padding: 20px;
-}
-
-.manual ol {
+.tutorial ol {
   margin: 10px 0 0;
   padding-left: 18px;
   color: var(--muted);
@@ -398,7 +392,6 @@ h1 {
     margin-inline: auto;
   }
   .kpi-grid,
-  .manual-grid,
   .flow-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -413,7 +406,6 @@ h1 {
     padding: 24px;
   }
   .kpi-grid,
-  .manual-grid,
   .flow-grid {
     grid-template-columns: 1fr;
   }

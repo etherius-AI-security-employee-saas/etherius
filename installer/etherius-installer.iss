@@ -17,7 +17,6 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-SetupIconFile=..\suite\assets\etherius-suite.ico
 UninstallDisplayIcon={app}\EtheriusSuite.exe
 
 [Languages]

@@ -53,8 +53,25 @@ if ($SkipInstaller) {
 }
 
 Write-Host "[4/4] Building installer (requires Inno Setup)..."
-$iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-if (-not (Test-Path $iscc)) {
+$isccCandidates = @(
+    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+    "${env:ProgramFiles}\Inno Setup 6\ISCC.exe",
+    "${env:LOCALAPPDATA}\Programs\Inno Setup 6\ISCC.exe"
+)
+$iscc = $null
+foreach ($candidate in $isccCandidates) {
+    if (Test-Path $candidate) {
+        $iscc = $candidate
+        break
+    }
+}
+if (-not $iscc) {
+    $isccCmd = Get-Command "iscc.exe" -ErrorAction SilentlyContinue
+    if ($isccCmd) {
+        $iscc = $isccCmd.Source
+    }
+}
+if (-not $iscc) {
     throw "Inno Setup not found. Install Inno Setup 6 and rerun this script."
 }
 & $iscc "$PSScriptRoot\etherius-installer.iss"

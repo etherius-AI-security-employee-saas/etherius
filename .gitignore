@@ -41,6 +41,7 @@ release/
 
 # Private operations / customer delivery assets
 CUSTOMER_SETUP_ETHERIUS/
+SETUP_FOLDER/
 TUTORIALS/
 START_*.bat
 *PLAYBOOK*.md
