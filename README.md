@@ -2,6 +2,8 @@
 
 Enterprise-grade AI cybersecurity platform for employee endpoint defense, real-time threat intelligence, and license-controlled SaaS distribution.
 
+Public Download Website: https://website-ecru-seven-71.vercel.app
+
 ## Why Etherius Is Different
 
 Etherius is designed as a full-stack security operations system, not just a dashboard:
@@ -96,3 +98,11 @@ See:
 ## Vision
 
 Etherius is engineered to feel like a premium, high-trust security platform: controlled, scalable, and deployable at real business scale across organizations and employee fleets.
+
+## Public Download Site
+
+The standalone public download experience is located in:
+
+- `website/`
+
+Deploy this folder to Vercel as a dedicated marketing/download front door.
