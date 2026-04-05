@@ -18,7 +18,7 @@ import InsiderThreats from './pages/InsiderThreats'
 import Vulnerabilities from './pages/Vulnerabilities'
 import Reports from './pages/Reports'
 
-const routerBasename = import.meta.env.VITE_ROUTER_BASENAME || (import.meta.env.PROD ? '/dashboard' : '/')
+const routerBasename = import.meta.env.VITE_ROUTER_BASENAME || '/'
 
 function Layout() {
   const { user, loading } = useAuth()

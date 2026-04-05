@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/'
-const routerBase = import.meta.env.VITE_ROUTER_BASENAME || (import.meta.env.PROD ? '/dashboard' : '')
+const routerBase = import.meta.env.VITE_ROUTER_BASENAME || ''
 const loginPath = `${routerBase}/login`.replace(/\/{2,}/g, '/')
 
 const api = axios.create({ baseURL })
