@@ -71,6 +71,10 @@ class EtheriusApp:
         self.employee_heartbeat_var = tk.StringVar(value="Heartbeat: waiting")
         self.employee_events_var = tk.StringVar(value="Events: 0 sent, 0 failed")
         self.scan_summary_var = tk.StringVar(value="Scan not started.")
+        self.posture_score_var = tk.StringVar(value="Protection posture: baseline")
+        self.endpoint_health_var = tk.StringVar(value="Endpoint health: waiting")
+        self.live_sync_state_var = tk.StringVar(value="Cloud sync: idle")
+        self.alert_mode_var = tk.StringVar(value="Alert mode: balanced")
 
         self.employee_key_label_var = tk.StringVar(value="")
         self.employee_key_max_var = tk.StringVar(value="1")
@@ -116,13 +120,22 @@ class EtheriusApp:
         self.live_sync_interval_var = tk.StringVar(value=str(self.state.get("live_sync_interval", "20")))
         self.sound_alert_var = tk.BooleanVar(value=self._to_bool(self.state.get("sound_alert", True)))
         self.ai_profile_var = tk.StringVar(value=str(self.state.get("ai_profile", "balanced")))
+        self.auto_start_on_launch_var = tk.BooleanVar(value=self._to_bool(self.state.get("auto_start_on_launch", False)))
+        self.deep_scan_on_start_var = tk.BooleanVar(value=self._to_bool(self.state.get("deep_scan_on_start", True)))
+        self.email_risk_alert_var = tk.BooleanVar(value=self._to_bool(self.state.get("email_risk_alert", True)))
+        self.web_control_enforce_var = tk.BooleanVar(value=self._to_bool(self.state.get("web_control_enforce", True)))
 
         self._set_identity()
         self._configure_styles()
         self._build()
         self._load_agent_config_to_ui()
         self._set_admin_unlocked(False)
+        self.alert_mode_var.set(
+            f"Alert mode: {self.policy_mode_var.get().strip()}/{self.ai_profile_var.get().strip()}"
+        )
         self._append_feed("Etherius started in unified mode.")
+        if self.auto_start_on_launch_var.get() and self.employee_token_var.get().strip() and self.employee_endpoint_id_var.get().strip():
+            self.root.after(1200, self.start_protection)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _set_identity(self):
@@ -187,6 +200,13 @@ class EtheriusApp:
             text="Unified premium console for manager activation, employee protection, and AI-driven response operations.",
             style="Muted.TLabel",
         ).pack(anchor="w", pady=(4, 0))
+
+        ribbon = tk.Frame(shell, bg="#060814")
+        ribbon.pack(fill="x", pady=(2, 10))
+        self._build_status_chip(ribbon, "Posture", self.posture_score_var, "#8be8c0").pack(side="left", fill="x", expand=True, padx=(0, 6))
+        self._build_status_chip(ribbon, "Endpoint", self.endpoint_health_var, "#cedbff").pack(side="left", fill="x", expand=True, padx=6)
+        self._build_status_chip(ribbon, "Cloud Sync", self.live_sync_state_var, "#9fb0d8").pack(side="left", fill="x", expand=True, padx=6)
+        self._build_status_chip(ribbon, "Alert Profile", self.alert_mode_var, "#ffb763").pack(side="left", fill="x", expand=True, padx=(6, 0))
 
         mode_row = tk.Frame(shell, bg="#060814")
         mode_row.pack(fill="x", pady=(0, 8))
@@ -264,6 +284,14 @@ class EtheriusApp:
             self._append_feed("Quick refresh completed.")
             return
         self._append_feed("Quick refresh skipped: manager not signed in.")
+
+    def _build_status_chip(self, parent, title, variable, color):
+        card = tk.Frame(parent, bg="#0e1428", bd=1, relief="groove")
+        tk.Label(card, text=title, bg="#0e1428", fg="#9fb0d8", anchor="w").pack(fill="x", padx=10, pady=(6, 0))
+        tk.Label(card, textvariable=variable, bg="#0e1428", fg=color, anchor="w", font=("Segoe UI", 10, "bold")).pack(
+            fill="x", padx=10, pady=(2, 8)
+        )
+        return card
 
     def _build_admin_tab(self, parent):
         wrap = tk.Frame(parent, bg="#0e1428")
@@ -499,6 +527,21 @@ class EtheriusApp:
         ttk.Button(scan_row, text="Deep Corporate Risk Scan", style="Secondary.TButton", command=self.run_deep_scan).pack(side="left", padx=8)
         tk.Label(scan_row, textvariable=self.scan_summary_var, bg="#141f3d", fg="#ffb763", anchor="w").pack(side="left", padx=10)
 
+        modules = tk.Frame(setup, bg="#141f3d")
+        modules.pack(fill="x", padx=10, pady=(0, 8))
+        module_items = [
+            ("Behavior AI", "#8be8c0"),
+            ("Network Guard", "#cedbff"),
+            ("File Monitor", "#9fb0d8"),
+            ("Threat Response", "#ffb763"),
+        ]
+        for idx, (name, color) in enumerate(module_items):
+            cell = tk.Frame(modules, bg="#0a1124", bd=1, relief="groove")
+            cell.grid(row=0, column=idx, sticky="nsew", padx=(0 if idx == 0 else 6, 0))
+            tk.Label(cell, text=name, bg="#0a1124", fg="#9fb0d8", font=("Segoe UI", 9)).pack(anchor="w", padx=8, pady=(6, 0))
+            tk.Label(cell, text="Active", bg="#0a1124", fg=color, font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=8, pady=(2, 7))
+            modules.grid_columnconfigure(idx, weight=1)
+
         tk.Label(setup, textvariable=self.employee_runtime_var, bg="#141f3d", fg="#8be8c0", anchor="w").pack(fill="x", padx=10)
         tk.Label(setup, textvariable=self.employee_heartbeat_var, bg="#141f3d", fg="#9fb0d8", anchor="w").pack(fill="x", padx=10)
         tk.Label(setup, textvariable=self.employee_events_var, bg="#141f3d", fg="#9fb0d8", anchor="w").pack(fill="x", padx=10, pady=(0, 8))
@@ -590,6 +633,46 @@ class EtheriusApp:
             notify_row,
             text="Sound alert for critical events in software",
             variable=self.sound_alert_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Enable email-risk escalation tagging",
+            variable=self.email_risk_alert_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Enforce web policy alerts in employee runtime",
+            variable=self.web_control_enforce_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Auto-start protection on launch (if activation exists)",
+            variable=self.auto_start_on_launch_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Run deep scan automatically at protection start",
+            variable=self.deep_scan_on_start_var,
             bg="#141f3d",
             fg="#dfe8ff",
             activebackground="#141f3d",
@@ -699,6 +782,7 @@ class EtheriusApp:
             self.admin_role = role
             self.admin_name = data.get("full_name") or payload["email"]
             self.admin_session_var.set(f"Signed in as {self.admin_name} ({self.admin_role})")
+            self.live_sync_state_var.set("Cloud sync: authenticated")
             self._set_admin_unlocked(True)
             self.refresh_admin_dashboard()
             self._schedule_admin_live_refresh()
@@ -720,6 +804,7 @@ class EtheriusApp:
         self.subscription_status_var.set("-")
         self.subscription_seats_var.set("-")
         self.subscription_capacity_var.set("-")
+        self.live_sync_state_var.set("Cloud sync: disconnected")
         self._clear_list(self.endpoints_list)
         self._clear_list(self.alerts_list)
         self._clear_list(self.employee_keys_list)
@@ -758,6 +843,9 @@ class EtheriusApp:
         )
         self.subscription_capacity_var.set(
             f"Employee key capacity allocated: {subscription.get('employee_key_capacity_allocated', 0)} / {subscription.get('employee_limit', 0)}"
+        )
+        self.live_sync_state_var.set(
+            f"Cloud sync: {stats.get('online_endpoints', 0)} endpoints online | {datetime.now().strftime('%H:%M:%S')}"
         )
 
         self._clear_list(self.endpoints_list)
@@ -1143,13 +1231,17 @@ class EtheriusApp:
         )
         self.agent.start()
         self.employee_runtime_var.set("Protection active")
+        self.endpoint_health_var.set("Endpoint health: protection active")
         self._append_feed("Protection started.")
+        if self.deep_scan_on_start_var.get():
+            self.root.after(2800, lambda: self._run_local_scan(deep=True))
         self._schedule_auto_scan(initial_delay_seconds=12)
 
     def stop_protection(self):
         self._cancel_auto_scan()
         self.agent.stop()
         self.employee_runtime_var.set("Protection offline")
+        self.endpoint_health_var.set("Endpoint health: protection offline")
         self._append_feed("Protection stopped.")
 
     def save_security_settings(self):
@@ -1162,6 +1254,9 @@ class EtheriusApp:
             messagebox.showerror("Invalid settings", "Live manager sync must be a positive number of seconds.")
             return
         self._save_state()
+        self.alert_mode_var.set(
+            f"Alert mode: {self.policy_mode_var.get().strip()}/{self.ai_profile_var.get().strip()}"
+        )
         self._append_feed(
             f"Security settings saved: mode={self.policy_mode_var.get()}, profile={self.ai_profile_var.get()}, sensitivity={self.ai_sensitivity_var.get()}, interval={interval}m."
         )
@@ -1211,6 +1306,9 @@ class EtheriusApp:
             summary["recommended_action"] = recommended_action
             self.scan_summary_var.set(
                 f"{summary['scan_depth'].upper()} scan: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100), action={recommended_action}"
+            )
+            self.posture_score_var.set(
+                f"Protection posture: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100)"
             )
             self._render_scan_results(summary, findings)
             self._append_feed(
@@ -1348,6 +1446,12 @@ class EtheriusApp:
         self.employee_events_var.set(
             f"Events: {status.get('events_sent', 0)} sent, {status.get('events_failed', 0)} failed"
         )
+        if status.get("heartbeat_ok"):
+            self.endpoint_health_var.set(
+                f"Endpoint health: stable | sent={status.get('events_sent', 0)}"
+            )
+        else:
+            self.endpoint_health_var.set("Endpoint health: reconnecting")
 
     def _format_agent_event(self, item):
         kind = item.get("kind", "event").upper()
@@ -1425,6 +1529,10 @@ class EtheriusApp:
             "live_sync_interval": self.live_sync_interval_var.get().strip(),
             "sound_alert": bool(self.sound_alert_var.get()),
             "ai_profile": self.ai_profile_var.get().strip(),
+            "auto_start_on_launch": bool(self.auto_start_on_launch_var.get()),
+            "deep_scan_on_start": bool(self.deep_scan_on_start_var.get()),
+            "email_risk_alert": bool(self.email_risk_alert_var.get()),
+            "web_control_enforce": bool(self.web_control_enforce_var.get()),
         }
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
