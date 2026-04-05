@@ -25,6 +25,7 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
+SetupIconFile=..\suite\assets\etherius-suite.ico
 UninstallDisplayIcon={app}\EtheriusSuite.exe
 
 [Languages]
@@ -34,8 +35,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create desktop icon"; GroupDescription: "Additional icons:"
 
 [Files]
-Source: "..\release\bin\EtheriusSuite.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\release\bin\agent_config.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\release\bin\EtheriusSuite\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Etherius Security"; Filename: "{app}\EtheriusSuite.exe"; IconFilename: "{app}\EtheriusSuite.exe"

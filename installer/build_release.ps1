@@ -8,6 +8,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root "backend"
 $agent = Join-Path $root "agent"
 $distRoot = Join-Path $root "release\bin"
+$suiteDist = Join-Path $distRoot "EtheriusSuite"
 $installerOut = Join-Path $root "release\installer\Etherius-Setup.exe"
 $pyiWork = Join-Path $root "build\pyinstaller"
 $suiteAssets = Join-Path $root "suite\assets"
@@ -106,13 +107,14 @@ Write-Host "[2/5] Installing build dependencies..."
 if (Test-Path "$root\release") { Remove-Item "$root\release" -Recurse -Force }
 if (Test-Path $pyiWork) { Remove-Item $pyiWork -Recurse -Force }
 New-Item -Path $distRoot -ItemType Directory -Force | Out-Null
+New-Item -Path $suiteDist -ItemType Directory -Force | Out-Null
 New-Item -Path $pyiWork -ItemType Directory -Force | Out-Null
 
 Write-Host "[3/5] Building unified executable..."
 Push-Location $root
 
 & "$backend\venv\Scripts\python.exe" -m PyInstaller `
-    --noconfirm --clean --onefile --noconsole `
+    --noconfirm --clean --onedir --noconsole `
     --specpath "$pyiWork" `
     --workpath "$pyiWork\work" `
     --distpath "$pyiWork\dist" `
@@ -122,15 +124,15 @@ Push-Location $root
     --add-data "$agentAssets;agent\assets" `
     "$suiteEntry"
 
-Copy-Item "$pyiWork\dist\EtheriusSuite.exe" "$distRoot\EtheriusSuite.exe"
-Copy-Item "$agent\agent_config.json" "$distRoot\agent_config.json"
+Copy-Item "$pyiWork\dist\EtheriusSuite\*" "$suiteDist" -Recurse -Force
+Copy-Item "$agent\agent_config.json" "$suiteDist\agent_config.json" -Force
 Pop-Location
 
 Write-Host "[4/5] Applying code signing (if configured)..."
-Sign-Binary "$distRoot\EtheriusSuite.exe"
+Sign-Binary "$suiteDist\EtheriusSuite.exe"
 
 if ($SkipInstaller) {
-    Write-Host "[5/5] Skipped installer creation. Unified binary ready in $distRoot"
+    Write-Host "[5/5] Skipped installer creation. Unified binaries ready in $suiteDist"
     exit 0
 }
 
