@@ -22,9 +22,12 @@ Run:
 ## Legal Trust Baseline for Customer Downloads
 
 1. Purchase an OV or EV code-signing certificate from a trusted CA.
-2. Configure signing environment variables before release build.
-3. Build setup with `installer/build_release.ps1`.
-4. Verify `Get-AuthenticodeSignature release\installer\Etherius-Setup.exe` returns `Valid`.
+2. Export certificate as `.pfx` with password.
+3. Run `ceo/CEO_BUILD_SIGNED_RELEASE.bat` (double-click).
+4. Enter your `.pfx` full path and password when prompted.
+5. Confirm signature status is `Valid` before sharing installer.
+
+If signature is not `Valid`, do not distribute setup.
 
 ## What CEO Shares to Customer
 

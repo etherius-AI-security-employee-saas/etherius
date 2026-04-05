@@ -20,6 +20,10 @@ Run:
 
 `CEO_START_CONSOLE.bat`
 
+For signed production build (recommended), run:
+
+`CEO_BUILD_SIGNED_RELEASE.bat`
+
 ## Required
 
 Enter your `CEO Master Key` in the console before issuing keys or loading customers.

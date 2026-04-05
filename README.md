@@ -77,3 +77,9 @@ Build script will sign both:
 
 1. `release/bin/EtheriusSuite.exe`
 2. `release/installer/Etherius-Setup.exe`
+
+Simple CEO flow:
+
+1. Double-click `ceo/CEO_BUILD_SIGNED_RELEASE.bat`
+2. Enter `.pfx` path and password when asked
+3. Share installer only if `ceo/VERIFY_RELEASE_SIGNATURE.ps1` reports `Valid`
