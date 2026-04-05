@@ -17,7 +17,7 @@ class AgentApp:
         self.root.title("Etherius Shield")
         self.root.geometry("1040x740")
         self.root.minsize(940, 680)
-        self.root.configure(bg="#070612")
+        self.root.configure(bg="#070b14")
         self.icon_image = None
         self._set_app_identity()
         self._configure_styles()
@@ -63,60 +63,60 @@ class AgentApp:
             padding=(12, 9),
             font=("Segoe UI", 10, "bold"),
             foreground="#ffffff",
-            background="#915cff",
+            background="#0070f3",
             borderwidth=0,
         )
         style.map(
             "Etherius.Primary.TButton",
-            background=[("active", "#a16dff"), ("pressed", "#7f4ee6")],
+            background=[("active", "#2b87ff"), ("pressed", "#0058cc")],
         )
 
         style.configure(
             "Etherius.Secondary.TButton",
             padding=(12, 9),
             font=("Segoe UI", 10, "bold"),
-            foreground="#eadfff",
-            background="#1b1638",
+            foreground="#d7e8ff",
+            background="#15233c",
             borderwidth=0,
         )
         style.map(
             "Etherius.Secondary.TButton",
-            background=[("active", "#241f48"), ("pressed", "#151233")],
+            background=[("active", "#1d2f4f"), ("pressed", "#122039")],
         )
 
     def _build(self):
-        top = tk.Frame(self.root, bg="#070612")
+        top = tk.Frame(self.root, bg="#070b14")
         top.pack(fill="x", padx=24, pady=(24, 12))
 
-        brand_wrap = tk.Frame(top, bg="#070612")
+        brand_wrap = tk.Frame(top, bg="#070b14")
         brand_wrap.pack(anchor="w")
         self.logo_image = None
         logo_path = Path(__file__).resolve().parent.parent / "assets" / "etherius-logo.jpeg"
         try:
             image = Image.open(logo_path).resize((64, 64))
             self.logo_image = ImageTk.PhotoImage(image)
-            tk.Label(brand_wrap, image=self.logo_image, bg="#070612").pack(side="left", padx=(0, 14))
+            tk.Label(brand_wrap, image=self.logo_image, bg="#070b14").pack(side="left", padx=(0, 14))
         except Exception:
             pass
 
-        text_wrap = tk.Frame(brand_wrap, bg="#070612")
+        text_wrap = tk.Frame(brand_wrap, bg="#070b14")
         text_wrap.pack(side="left")
-        tk.Label(text_wrap, text="etherius", fg="#f5f0ff", bg="#070612", font=("Rajdhani", 30, "bold")).pack(anchor="w")
+        tk.Label(text_wrap, text="ETHERIUS", fg="#f0f6ff", bg="#070b14", font=("Rajdhani", 30, "bold")).pack(anchor="w")
         tk.Label(
             text_wrap,
             text="Premium Employee Security Client",
-            fg="#b9addf",
-            bg="#070612",
+            fg="#9ab2d5",
+            bg="#070b14",
             font=("Segoe UI", 11),
         ).pack(anchor="w", pady=(2, 0))
 
-        container = tk.Frame(self.root, bg="#070612")
+        container = tk.Frame(self.root, bg="#070b14")
         container.pack(fill="both", expand=True, padx=24, pady=12)
 
-        left = tk.Frame(container, bg="#141028", highlightbackground="#4f3f8f", highlightthickness=1)
+        left = tk.Frame(container, bg="#0d1321", highlightbackground="#1b3d68", highlightthickness=1)
         left.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
-        right = tk.Frame(container, bg="#141028", highlightbackground="#4f3f8f", highlightthickness=1, width=360)
+        right = tk.Frame(container, bg="#0d1321", highlightbackground="#1b3d68", highlightthickness=1, width=360)
         right.pack(side="right", fill="y")
         right.pack_propagate(False)
 
@@ -124,27 +124,27 @@ class AgentApp:
         self._build_right(right)
 
     def _build_left(self, parent):
-        status_frame = tk.Frame(parent, bg="#141028")
+        status_frame = tk.Frame(parent, bg="#0d1321")
         status_frame.pack(fill="x", padx=20, pady=(20, 10))
 
         self.protection_label = tk.Label(
             status_frame,
             text="Protection Offline",
-            fg="#ff9dc2",
-            bg="#141028",
+            fg="#ff4757",
+            bg="#0d1321",
             font=("Segoe UI", 20, "bold"),
         )
         self.protection_label.pack(anchor="w")
         self.detail_label = tk.Label(
             status_frame,
             text="Agent is not active yet.",
-            fg="#b9addf",
-            bg="#141028",
+            fg="#9ab2d5",
+            bg="#0d1321",
             font=("Segoe UI", 11),
         )
         self.detail_label.pack(anchor="w", pady=(6, 0))
 
-        stats = tk.Frame(parent, bg="#141028")
+        stats = tk.Frame(parent, bg="#0d1321")
         stats.pack(fill="x", padx=20, pady=10)
 
         self.stats_vars = {
@@ -160,30 +160,30 @@ class AgentApp:
             ("Last Event", self.stats_vars["last_event"]),
         ]
         for idx, (label, var) in enumerate(cards):
-            card = tk.Frame(stats, bg="#1a1638", highlightbackground="#5a48a0", highlightthickness=1)
+            card = tk.Frame(stats, bg="#13203a", highlightbackground="#224a7f", highlightthickness=1)
             card.grid(row=idx // 2, column=idx % 2, padx=6, pady=6, sticky="nsew")
             stats.grid_columnconfigure(idx % 2, weight=1)
-            tk.Label(card, text=label, fg="#b9addf", bg="#1a1638", font=("Segoe UI", 10)).pack(anchor="w", padx=14, pady=(12, 4))
-            tk.Label(card, textvariable=var, fg="#f4f0ff", bg="#1a1638", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=14, pady=(0, 12))
+            tk.Label(card, text=label, fg="#9ab2d5", bg="#13203a", font=("Segoe UI", 10)).pack(anchor="w", padx=14, pady=(12, 4))
+            tk.Label(card, textvariable=var, fg="#f0f6ff", bg="#13203a", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=14, pady=(0, 12))
 
-        actions = tk.Frame(parent, bg="#141028")
+        actions = tk.Frame(parent, bg="#0d1321")
         actions.pack(fill="x", padx=20, pady=10)
         ttk.Button(actions, text="Start Protection", command=self.start_agent, style="Etherius.Primary.TButton").pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="Stop Protection", command=self.stop_agent, style="Etherius.Secondary.TButton").pack(side="left")
 
-        feed_wrap = tk.Frame(parent, bg="#141028")
+        feed_wrap = tk.Frame(parent, bg="#0d1321")
         feed_wrap.pack(fill="both", expand=True, padx=20, pady=(10, 20))
-        tk.Label(feed_wrap, text="Protection Activity", fg="#f4f0ff", bg="#141028", font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(0, 8))
-        self.feed = tk.Text(feed_wrap, bg="#0b0920", fg="#e7deff", relief="flat", insertbackground="#e7deff", font=("Consolas", 10))
+        tk.Label(feed_wrap, text="Protection Activity", fg="#f0f6ff", bg="#0d1321", font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(0, 8))
+        self.feed = tk.Text(feed_wrap, bg="#0a101d", fg="#dce8ff", relief="flat", insertbackground="#dce8ff", font=("Consolas", 10))
         self.feed.pack(fill="both", expand=True)
 
     def _build_right(self, parent):
-        tk.Label(parent, text="Activation", fg="#f4f0ff", bg="#141028", font=("Segoe UI", 14, "bold")).pack(anchor="w", padx=18, pady=(20, 6))
+        tk.Label(parent, text="Activation", fg="#f0f6ff", bg="#0d1321", font=("Segoe UI", 14, "bold")).pack(anchor="w", padx=18, pady=(20, 6))
         tk.Label(
             parent,
             text="Paste the activation code from customer admin dashboard or fill fields manually.",
-            fg="#b9addf",
-            bg="#141028",
+            fg="#9ab2d5",
+            bg="#0d1321",
             wraplength=300,
             justify="left",
             font=("Segoe UI", 10),
@@ -217,33 +217,33 @@ class AgentApp:
         self._entry(parent, "Detected MAC", self.device_mac)
         ttk.Button(parent, text="Save Connection", command=self.save_connection, style="Etherius.Secondary.TButton").pack(fill="x", padx=18, pady=(8, 18))
 
-        tk.Label(parent, text="Malicious Email Check", fg="#f4f0ff", bg="#141028", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=18, pady=(10, 8))
+        tk.Label(parent, text="Malicious Email Check", fg="#f0f6ff", bg="#0d1321", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=18, pady=(10, 8))
         self._entry(parent, "Sender", self.email_sender)
         self._entry(parent, "Subject", self.email_subject)
-        tk.Label(parent, text="Email Body / URL", fg="#b9addf", bg="#141028", font=("Segoe UI", 10)).pack(anchor="w", padx=18, pady=(10, 6))
-        self.email_body = tk.Text(parent, height=6, bg="#0b0920", fg="#f1ebff", insertbackground="#f1ebff", relief="flat", font=("Segoe UI", 10))
+        tk.Label(parent, text="Email Body / URL", fg="#9ab2d5", bg="#0d1321", font=("Segoe UI", 10)).pack(anchor="w", padx=18, pady=(10, 6))
+        self.email_body = tk.Text(parent, height=6, bg="#0a101d", fg="#f0f6ff", insertbackground="#f0f6ff", relief="flat", font=("Segoe UI", 10))
         self.email_body.pack(fill="x", padx=18)
         ttk.Button(parent, text="Analyze Suspicious Email", command=self.analyze_email, style="Etherius.Primary.TButton").pack(fill="x", padx=18, pady=(8, 18))
 
-        tk.Label(parent, text="What this software does", fg="#f4f0ff", bg="#141028", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=18, pady=(10, 8))
+        tk.Label(parent, text="What this software does", fg="#f0f6ff", bg="#0d1321", font=("Segoe UI", 13, "bold")).pack(anchor="w", padx=18, pady=(10, 8))
         info = (
             "This employee client monitors process, network, file, and login activity on the local device.\n\n"
             "It sends telemetry to Etherius so customer admins can review endpoint health, alerts, and response posture.\n\n"
             "Employees do not need dashboard access. They only need this Shield client installed and activated."
         )
-        tk.Label(parent, text=info, fg="#b9addf", bg="#141028", wraplength=300, justify="left", font=("Segoe UI", 10)).pack(anchor="w", padx=18)
+        tk.Label(parent, text=info, fg="#9ab2d5", bg="#0d1321", wraplength=300, justify="left", font=("Segoe UI", 10)).pack(anchor="w", padx=18)
 
     def _entry(self, parent, label, variable, show=None):
-        wrap = tk.Frame(parent, bg="#141028")
+        wrap = tk.Frame(parent, bg="#0d1321")
         wrap.pack(fill="x", padx=18, pady=(10, 0))
-        tk.Label(wrap, text=label, fg="#b9addf", bg="#141028", font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 6))
+        tk.Label(wrap, text=label, fg="#9ab2d5", bg="#0d1321", font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 6))
         entry = tk.Entry(
             wrap,
             textvariable=variable,
             show=show,
-            bg="#0b0920",
-            fg="#f1ebff",
-            insertbackground="#f1ebff",
+            bg="#0a101d",
+            fg="#f0f6ff",
+            insertbackground="#f0f6ff",
             relief="flat",
             font=("Segoe UI", 10),
         )
@@ -363,7 +363,7 @@ class AgentApp:
         self.stats_vars["heartbeat"].set("Connected" if status.get("heartbeat_ok") else "Waiting")
         self.stats_vars["last_event"].set(status.get("last_event_time", "-") or "-")
         if self.agent.running:
-            self.protection_label.configure(text="Protection Active", fg="#86f0c6")
+            self.protection_label.configure(text="Protection Active", fg="#2ed573")
             self.detail_label.configure(text="Telemetry is being collected and forwarded to the customer dashboard.")
 
     def handle_event(self, item):
@@ -372,7 +372,7 @@ class AgentApp:
     def _format_event(self, item):
         kind = item.get("kind", "event").upper()
         event_type = item.get("event_type", "unknown")
-        detail = item.get("error") or item.get("status_code") or ""
+        detail = item.get("error") or item.get("detail") or item.get("status_code") or ""
         return f"[{kind}] {event_type} {detail}".strip()
 
     def append_feed(self, text):

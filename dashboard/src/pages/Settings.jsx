@@ -17,6 +17,7 @@ export default function Settings() {
   const [subscription, setSubscription] = useState(null)
   const [msg, setMsg] = useState(null)
   const [licenseMsg, setLicenseMsg] = useState(null)
+  const [soundAlerts, setSoundAlerts] = useState(() => localStorage.getItem('etherius_sound_alert') === 'true')
   const canManageUsers = ['admin', 'superadmin'].includes(user?.role)
   const canManageEmployeeKeys = ['admin', 'superadmin', 'manager'].includes(user?.role)
 
@@ -40,6 +41,10 @@ export default function Settings() {
     loadUsers()
     loadLicenses()
   }, [canManageUsers, canManageEmployeeKeys])
+
+  useEffect(() => {
+    localStorage.setItem('etherius_sound_alert', soundAlerts ? 'true' : 'false')
+  }, [soundAlerts])
 
   const createUser = async () => {
     if (!newUser.email || !newUser.password) {
@@ -143,6 +148,12 @@ export default function Settings() {
               </div>
               <div className="soft-note">
                 Managers can generate employee keys from this page and share only with approved employees.
+              </div>
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ color: 'var(--muted-strong)', fontSize: 13 }}>Critical alert sound notification</div>
+                <button className="btn-secondary" onClick={() => setSoundAlerts(prev => !prev)} style={{ padding: '7px 12px', color: soundAlerts ? '#2ed573' : 'var(--muted)' }}>
+                  {soundAlerts ? 'Enabled' : 'Disabled'}
+                </button>
               </div>
             </div>
 

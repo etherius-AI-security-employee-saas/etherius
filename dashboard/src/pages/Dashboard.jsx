@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, AlertTriangle, Ban, LogIn, LogOut, Monitor, Shield, Zap } from 'lucide-react'
+import { Activity, AlertTriangle, Ban, HardDrive, LogIn, LogOut, Monitor, Shield, Usb, Zap } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { dashboardAPI } from '../api/client'
 import AlertCard from '../components/AlertCard'
@@ -68,6 +68,8 @@ export default function Dashboard() {
           <StatCard icon={LogIn} label="Logins Today" value={stats?.login_events_today} color="#5cc8ff" />
           <StatCard icon={LogOut} label="Logouts Today" value={stats?.logout_events_today} color="#ffba52" />
           <StatCard icon={Ban} label="Blocked IPs" value={stats?.blocked_ips} color="#ffd166" />
+          <StatCard icon={Usb} label="USB Events" value={stats?.usb_events_today} color="#0070f3" />
+          <StatCard icon={HardDrive} label="DLP Events" value={stats?.dlp_events_today} color="#ffa502" />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>

@@ -8,6 +8,8 @@ export default function AlertCard({ alert, onUpdate }) {
   const [expanded, setExpanded] = useState(false)
   const severityColor = SEVERITY[alert.severity] || '#7c93b1'
   const statusColor = STATUS[alert.status] || '#7c93b1'
+  const text = `${alert.title || ''} ${alert.description || ''}`.toLowerCase()
+  const isDlp = text.includes('dlp') || text.includes('data loss') || text.includes('mass copy')
 
   return (
     <div className="panel" style={{
@@ -28,6 +30,11 @@ export default function AlertCard({ alert, onUpdate }) {
             <span style={{ fontSize: 10, padding: '4px 10px', borderRadius: 999, background: `${statusColor}18`, color: statusColor, textTransform: 'uppercase', fontWeight: 700 }}>
               {alert.status}
             </span>
+            {isDlp ? (
+              <span style={{ fontSize: 10, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,165,2,0.2)', color: '#ffa502', textTransform: 'uppercase', fontWeight: 800 }}>
+                DLP
+              </span>
+            ) : null}
             <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 12, fontWeight: 700 }}>
               Risk {alert.risk_score}/100
             </span>

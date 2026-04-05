@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_db
+from app.models.agent_command import AgentCommand
 from app.models.endpoint import Endpoint
 from app.models.user import User
 from app.security.dependencies import get_current_user
@@ -19,6 +20,15 @@ class BlockIPReq(BaseModel):
 class IsolateReq(BaseModel):
     endpoint_id: str
     reason: Optional[str] = "Security incident"
+
+
+class LockScreenReq(BaseModel):
+    endpoint_id: str
+
+
+class RemoteMessageReq(BaseModel):
+    endpoint_id: str
+    message: str
 
 @router.post("/block-ip")
 def block_ip(data: BlockIPReq, db: Session = Depends(get_db), u: User = Depends(get_current_user)):
@@ -52,3 +62,44 @@ def unblock_ip(ip_id: str, db: Session = Depends(get_db), u: User = Depends(get_
     if not ip: raise HTTPException(404, "Not found")
     ip.is_active = False; db.commit()
     return {"message": "IP unblocked"}
+
+
+@router.post("/lock-screen")
+def lock_screen(data: LockScreenReq, db: Session = Depends(get_db), u: User = Depends(get_current_user)):
+    require_min_role("manager")(u)
+    ep = db.query(Endpoint).filter(Endpoint.id == data.endpoint_id, Endpoint.company_id == u.company_id).first()
+    if not ep:
+        raise HTTPException(404, "Endpoint not found")
+    cmd = AgentCommand(
+        company_id=u.company_id,
+        endpoint_id=ep.id,
+        command_type="lock_screen",
+        payload={},
+        status="pending",
+        created_by=u.id,
+    )
+    db.add(cmd)
+    db.commit()
+    return {"message": f"Lock screen queued for {ep.hostname}", "command_id": cmd.id}
+
+
+@router.post("/remote-message")
+def remote_message(data: RemoteMessageReq, db: Session = Depends(get_db), u: User = Depends(get_current_user)):
+    require_min_role("manager")(u)
+    ep = db.query(Endpoint).filter(Endpoint.id == data.endpoint_id, Endpoint.company_id == u.company_id).first()
+    if not ep:
+        raise HTTPException(404, "Endpoint not found")
+    message = (data.message or "").strip()
+    if not message:
+        raise HTTPException(400, "message is required")
+    cmd = AgentCommand(
+        company_id=u.company_id,
+        endpoint_id=ep.id,
+        command_type="show_message",
+        payload={"message": message[:500]},
+        status="pending",
+        created_by=u.id,
+    )
+    db.add(cmd)
+    db.commit()
+    return {"message": f"Message queued for {ep.hostname}", "command_id": cmd.id}

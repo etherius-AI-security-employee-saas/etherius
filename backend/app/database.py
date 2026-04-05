@@ -35,6 +35,13 @@ def init_db():
     from app.models.blocked_ip import BlockedIP
     from app.models.audit_log import AuditLog
     from app.models.license_key import LicenseKey
+    from app.models.usb_policy import UsbPolicy
+    from app.models.usb_device import UsbDevice
+    from app.models.app_blacklist import AppBlacklist
+    from app.models.blocked_domain import BlockedDomain
+    from app.models.insider_threat_score import InsiderThreatScore
+    from app.models.software_inventory import SoftwareInventory
+    from app.models.agent_command import AgentCommand
     Base.metadata.create_all(bind=engine)
     _apply_lightweight_migrations()
     print("[Etherius] Database tables created successfully")

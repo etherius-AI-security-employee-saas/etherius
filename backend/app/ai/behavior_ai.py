@@ -15,6 +15,11 @@ SUSPICIOUS_EMAIL_KEYWORDS = [
     "gift card", "wire transfer", "login now", "unusual sign-in",
     "mfa expired", "confirm payroll", "document shared", "security alert"
 ]
+SENSITIVE_DLP_PATTERNS = [
+    ("ssn", r"\b\d{3}-\d{2}-\d{4}\b"),
+    ("credit_card", r"\b(?:\d[ -]*?){13,16}\b"),
+    ("api_key", r"(api[_-]?key|secret|token)\s*[:=]\s*[A-Za-z0-9_\-]{16,}"),
+]
 
 def analyze_process(payload: Dict) -> Dict:
     score, flags = 0, []
@@ -120,6 +125,82 @@ def analyze_threat_scan(payload: Dict) -> Dict:
 
     return {"score": min(score, 100), "flags": flags}
 
+
+def analyze_usb(payload: Dict) -> Dict:
+    score, flags = 0, []
+    device_id = str(payload.get("device_id", "")).strip()
+    known = bool(payload.get("is_whitelisted", False))
+    action = str(payload.get("action", "")).lower()
+    if action == "plugged" and not known:
+        score += 65
+        flags.append("Unknown USB device inserted")
+    if action == "blocked":
+        score += 75
+        flags.append("USB blocked by policy")
+    if device_id and any(tag in device_id.lower() for tag in ["vid_", "pid_"]):
+        score += 10
+    return {"score": min(score, 100), "flags": flags}
+
+
+def analyze_dlp(payload: Dict) -> Dict:
+    import re
+
+    score, flags = 0, []
+    content = str(payload.get("content_sample", "")).lower()
+    bytes_copied = int(payload.get("bytes_copied", 0) or 0)
+    if bytes_copied > 100_000_000:
+        score += 80
+        flags.append("Mass copy to external media/cloud")
+    elif bytes_copied > 25_000_000:
+        score += 50
+        flags.append("Large data transfer detected")
+
+    matched = []
+    for name, pattern in SENSITIVE_DLP_PATTERNS:
+        try:
+            if re.search(pattern, content, flags=re.IGNORECASE):
+                matched.append(name)
+        except re.error:
+            continue
+    if matched:
+        score += min(20 * len(matched), 60)
+        flags.append(f"Sensitive pattern(s) detected: {', '.join(matched)}")
+
+    if str(payload.get("target", "")).lower() in {"dropbox", "gdrive", "googledrive", "onedrive-personal"}:
+        score += 25
+        flags.append("Upload to external cloud storage")
+
+    return {"score": min(score, 100), "flags": flags}
+
+
+def analyze_web(payload: Dict) -> Dict:
+    score, flags = 0, []
+    domain = str(payload.get("domain", "")).lower()
+    blocked = bool(payload.get("blocked", False))
+    category = str(payload.get("category", "custom")).lower()
+    if blocked:
+        score += 55
+        flags.append(f"Blocked website access attempt: {domain}")
+    if category in {"adult", "gambling"}:
+        score += 25
+        flags.append(f"Policy-sensitive category visited: {category}")
+    if category == "social":
+        score += 10
+    return {"score": min(score, 100), "flags": flags}
+
+
+def analyze_vulnerability(payload: Dict) -> Dict:
+    score, flags = 0, []
+    critical = int(payload.get("critical_count", 0) or 0)
+    high = int(payload.get("high_count", 0) or 0)
+    if critical > 0:
+        score += min(critical * 20, 80)
+        flags.append(f"Critical vulnerabilities found: {critical}")
+    if high > 0:
+        score += min(high * 10, 40)
+        flags.append(f"High vulnerabilities found: {high}")
+    return {"score": min(score, 100), "flags": flags}
+
 def analyze_event(event_type: str, payload: Dict) -> Dict:
     fn = {
         "process": analyze_process,
@@ -131,6 +212,11 @@ def analyze_event(event_type: str, payload: Dict) -> Dict:
         "file": analyze_file,
         "email": analyze_email,
         "threat_scan": analyze_threat_scan,
+        "usb": analyze_usb,
+        "dlp": analyze_dlp,
+        "web": analyze_web,
+        "vulnerability": analyze_vulnerability,
+        "app_blacklist": analyze_process,
     }
     result = fn.get(event_type, lambda p: {"score":0,"flags":[]})(payload)
     result["category"] = event_type

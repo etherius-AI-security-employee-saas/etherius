@@ -1,13 +1,15 @@
 from urllib.parse import quote_plus
 
-from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi import FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
-from app.api import agent, auth, dashboard, licenses, response
+from app.api import agent, auth, control, dashboard, licenses, reports, response
 from app.config import settings
+from app.realtime.ws import manager as ws_manager
+from app.security.jwt_handler import decode_token
 from app.security.licenses import ensure_default_subscription_key
 
 API_DOCS_ENABLED = settings.ENABLE_API_DOCS
@@ -75,8 +77,10 @@ def _schema():
 app.include_router(auth.router)
 app.include_router(agent.router)
 app.include_router(dashboard.router)
+app.include_router(control.router)
 app.include_router(licenses.router)
 app.include_router(response.router)
+app.include_router(reports.router)
 
 
 @app.get("/", include_in_schema=False)
@@ -132,9 +136,24 @@ def ceo_swagger(
     )
 
 
+@app.websocket("/ws/{company_id}")
+async def websocket_alerts(websocket: WebSocket, company_id: str, token: str = Query(default="")):
+    payload = decode_token(token, "access") if token else None
+    if not payload or payload.get("company_id") != company_id:
+        await websocket.close(code=1008)
+        return
+    await ws_manager.connect(company_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(company_id, websocket)
+
+
 @app.on_event("startup")
 def startup():
     from app.database import SessionLocal, init_db
+    from app.ai.insider_scheduler import start_insider_scheduler
     from app.utils.demo_seed import bootstrap_demo_environment
 
     try:
@@ -165,5 +184,6 @@ def startup():
         finally:
             db.close()
     print(f"[Etherius] Backend running | ENV={settings.ENV}")
+    start_insider_scheduler(interval_seconds=3600)
     if API_DOCS_ENABLED:
         print("[Etherius] CEO Swagger route: /api/ceo/swagger (CEO authorization required)")

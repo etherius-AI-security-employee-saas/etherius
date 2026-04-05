@@ -1,11 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+from pydantic import BaseModel
+from typing import List, Optional
 from app.database import get_db
 from app.models.endpoint import Endpoint
 from app.models.event import Event
 from app.models.company import Company
 from app.models.alert import Alert
+from app.models.app_blacklist import AppBlacklist
+from app.models.blocked_domain import BlockedDomain
+from app.models.agent_command import AgentCommand
+from app.models.software_inventory import SoftwareInventory
+from app.models.usb_device import UsbDevice
+from app.models.usb_policy import UsbPolicy
 from app.schemas.endpoint import EndpointEnroll, EndpointRegister
 from app.schemas.event import EventSubmit
 from app.security.dependencies import get_current_agent, get_current_user
@@ -16,10 +24,43 @@ from app.security.rbac import require_min_role
 from app.security.subscription_guard import has_active_company_subscription
 from app.ai.risk_engine import calculate_risk, build_alert_title
 from app.ai.explain_ai import generate_explanation
+from app.ai.decision_engine import DECISION_AUTO_BLOCK, DECISION_CRITICAL, DECISION_ISOLATE
+from app.security.ip_blocker import block_ip as auto_block_ip
 from app.utils.audit import log_action
 from app.config import settings
 
 router = APIRouter(prefix="/api/agent", tags=["Agent"])
+
+_VULN_CATALOG = {
+    "google chrome": {"cve_id": "CVE-2025-0001", "severity": "high"},
+    "microsoft edge": {"cve_id": "CVE-2025-0002", "severity": "high"},
+    "adobe reader": {"cve_id": "CVE-2025-1001", "severity": "critical"},
+    "java": {"cve_id": "CVE-2025-1200", "severity": "critical"},
+    "winrar": {"cve_id": "CVE-2025-1201", "severity": "high"},
+    "7-zip": {"cve_id": "CVE-2025-1202", "severity": "medium"},
+}
+_DEFAULT_APP_BLACKLIST = [
+    ("mimikatz", "kill"),
+    ("netcat", "kill"),
+    ("nc.exe", "kill"),
+    ("qbittorrent", "alert"),
+    ("utorrent", "alert"),
+    ("tor", "alert"),
+]
+
+
+class CommandResultReq(BaseModel):
+    status: str  # executed | failed
+    result_text: Optional[str] = ""
+
+
+class SoftwareItemReq(BaseModel):
+    software_name: str
+    version: Optional[str] = ""
+
+
+class SoftwareInventoryReq(BaseModel):
+    items: List[SoftwareItemReq]
 
 
 def _activation_code(endpoint_id: str, token: str) -> str:
@@ -129,7 +170,42 @@ def heartbeat(db: Session = Depends(get_db), endpoint: Endpoint = Depends(get_cu
 @router.post("/event")
 def submit_event(data: EventSubmit, db: Session = Depends(get_db),
                  endpoint: Endpoint = Depends(get_current_agent)):
-    risk = calculate_risk(data.event_type, data.payload)
+    if data.event_type == "usb":
+        policy = db.query(UsbPolicy).filter(UsbPolicy.company_id == endpoint.company_id).first()
+        policy_value = policy.policy if policy else "allow_all"
+        payload_device_id = str(data.payload.get("device_id", "")).strip()
+        existing = None
+        if payload_device_id:
+            existing = db.query(UsbDevice).filter(
+                UsbDevice.company_id == endpoint.company_id,
+                UsbDevice.device_id == payload_device_id,
+            ).first()
+            if not existing:
+                existing = UsbDevice(
+                    company_id=endpoint.company_id,
+                    device_id=payload_device_id,
+                    device_name=str(data.payload.get("device_name", "")).strip(),
+                    vendor=str(data.payload.get("vendor", "")).strip(),
+                    size=str(data.payload.get("size", "")).strip(),
+                    is_whitelisted=False,
+                )
+                db.add(existing)
+                db.flush()
+        is_whitelisted = bool(existing.is_whitelisted) if existing else False
+        data.payload["is_whitelisted"] = is_whitelisted
+        data.payload["policy"] = policy_value
+        if policy_value == "block_all" or (policy_value == "whitelist" and not is_whitelisted):
+            data.payload["action"] = "blocked"
+            data.payload["usb_block_required"] = True
+        else:
+            data.payload["action"] = str(data.payload.get("action", "plugged")).lower()
+            data.payload["usb_block_required"] = False
+
+    risk = calculate_risk(
+        data.event_type,
+        data.payload,
+        context={"endpoint_id": endpoint.id, "company_id": endpoint.company_id},
+    )
     score = risk["risk_score"]; severity = risk["severity"]
     event = Event(
         company_id=endpoint.company_id, endpoint_id=endpoint.id,
@@ -143,13 +219,225 @@ def submit_event(data: EventSubmit, db: Session = Depends(get_db),
     alert_id = None
     if risk["should_alert"]:
         explanation = generate_explanation(data.event_type, risk, endpoint.hostname)
+        decision = risk.get("decision", "MONITOR")
+        recommended = ", ".join(risk.get("recommended_actions", []))
+        description = f"{risk['explanation']}\nDecision: {decision}\nActions: {recommended}"
         alert = Alert(
             company_id=endpoint.company_id, endpoint_id=endpoint.id, event_id=event.id,
             title=build_alert_title(data.event_type, risk["flags"], severity),
-            description=risk["explanation"], severity=severity,
+            description=description, severity=severity,
             risk_score=str(score), ai_explanation=explanation
         )
         db.add(alert); db.flush(); alert_id = alert.id
+
+    decision = risk.get("decision")
+    if decision in {DECISION_AUTO_BLOCK, DECISION_CRITICAL}:
+        ip_to_block = data.payload.get("dest_ip") or data.payload.get("source_ip")
+        if ip_to_block:
+            auto_block_ip(
+                db,
+                endpoint.company_id,
+                str(ip_to_block),
+                f"Auto-block from decision engine ({decision})",
+                blocked_by="ai_decision_engine",
+            )
+
+    if decision == DECISION_CRITICAL:
+        endpoint.is_isolated = True
+        endpoint.status = "isolated"
+    elif decision == DECISION_ISOLATE and endpoint.status != "isolated":
+        endpoint.status = "online"
+
+    if alert_id:
+        try:
+            from app.realtime.ws import manager as ws_manager
+
+            ws_manager.publish_alert(
+                endpoint.company_id,
+                {
+                    "type": "alert_created",
+                    "alert_id": alert_id,
+                    "endpoint_id": endpoint.id,
+                    "event_type": data.event_type,
+                    "severity": severity,
+                    "risk_score": score,
+                    "decision": decision,
+                    "created_at": datetime.utcnow().isoformat(),
+                },
+            )
+        except Exception:
+            pass
+
     db.commit()
     return {"event_id": event.id, "risk_score": score,
-            "severity": severity, "alert_created": alert_id is not None, "alert_id": alert_id}
+            "severity": severity, "alert_created": alert_id is not None, "alert_id": alert_id,
+            "decision": decision, "recommended_actions": risk.get("recommended_actions", []),
+            "response_actions": {
+                "usb_action": "eject" if bool(data.payload.get("usb_block_required")) else None,
+            }}
+
+
+@router.get("/policies")
+def get_agent_policies(db: Session = Depends(get_db), endpoint: Endpoint = Depends(get_current_agent)):
+    seeded = False
+    if db.query(AppBlacklist).filter(AppBlacklist.company_id == endpoint.company_id).count() == 0:
+        for app_name, action in _DEFAULT_APP_BLACKLIST:
+            db.add(AppBlacklist(company_id=endpoint.company_id, app_name=app_name, action=action, is_active=True))
+        seeded = True
+    if seeded:
+        db.commit()
+    usb_policy = db.query(UsbPolicy).filter(UsbPolicy.company_id == endpoint.company_id).first()
+    usb_devices = db.query(UsbDevice).filter(
+        UsbDevice.company_id == endpoint.company_id,
+        UsbDevice.is_whitelisted == True,
+    ).all()
+    app_blacklist = db.query(AppBlacklist).filter(
+        AppBlacklist.company_id == endpoint.company_id,
+        AppBlacklist.is_active == True,
+    ).all()
+    domains = db.query(BlockedDomain).filter(
+        BlockedDomain.company_id == endpoint.company_id,
+        BlockedDomain.is_active == True,
+    ).all()
+    return {
+        "usb_policy": usb_policy.policy if usb_policy else "allow_all",
+        "usb_whitelist": [row.device_id for row in usb_devices],
+        "app_blacklist": [{"app_name": row.app_name, "action": row.action} for row in app_blacklist],
+        "blocked_domains": [{"domain": row.domain, "category": row.category} for row in domains],
+    }
+
+
+@router.get("/commands")
+def get_agent_commands(limit: int = 20, db: Session = Depends(get_db), endpoint: Endpoint = Depends(get_current_agent)):
+    rows = (
+        db.query(AgentCommand)
+        .filter(
+            AgentCommand.company_id == endpoint.company_id,
+            AgentCommand.endpoint_id == endpoint.id,
+            AgentCommand.status == "pending",
+        )
+        .order_by(AgentCommand.created_at.asc())
+        .limit(max(1, min(limit, 100)))
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "command_type": row.command_type,
+            "payload": row.payload or {},
+            "created_at": row.created_at,
+        }
+        for row in rows
+    ]
+
+
+@router.post("/commands/{command_id}/result")
+def set_command_result(
+    command_id: str,
+    data: CommandResultReq,
+    db: Session = Depends(get_db),
+    endpoint: Endpoint = Depends(get_current_agent),
+):
+    status = str(data.status or "").strip().lower()
+    if status not in {"executed", "failed"}:
+        raise HTTPException(status_code=400, detail="status must be executed or failed")
+    row = db.query(AgentCommand).filter(
+        AgentCommand.id == command_id,
+        AgentCommand.company_id == endpoint.company_id,
+        AgentCommand.endpoint_id == endpoint.id,
+    ).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Command not found")
+    row.status = status
+    row.result_text = (data.result_text or "").strip()[:2000]
+    row.executed_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Command result updated"}
+
+
+@router.post("/software-inventory")
+def submit_software_inventory(
+    data: SoftwareInventoryReq,
+    db: Session = Depends(get_db),
+    endpoint: Endpoint = Depends(get_current_agent),
+):
+    db.query(SoftwareInventory).filter(
+        SoftwareInventory.company_id == endpoint.company_id,
+        SoftwareInventory.endpoint_id == endpoint.id,
+    ).delete()
+
+    critical_count = 0
+    high_count = 0
+    for item in data.items:
+        name = str(item.software_name or "").strip()
+        if not name:
+            continue
+        key = name.lower()
+        cve = _VULN_CATALOG.get(key)
+        severity = cve.get("severity") if cve else None
+        is_vuln = cve is not None
+        if severity == "critical":
+            critical_count += 1
+        elif severity == "high":
+            high_count += 1
+        db.add(
+            SoftwareInventory(
+                company_id=endpoint.company_id,
+                endpoint_id=endpoint.id,
+                software_name=name,
+                version=str(item.version or "").strip(),
+                is_vulnerable=is_vuln,
+                cve_id=cve.get("cve_id") if cve else None,
+                severity=severity,
+                last_scanned_at=datetime.utcnow(),
+            )
+        )
+    db.flush()
+
+    if critical_count or high_count:
+        payload = {"critical_count": critical_count, "high_count": high_count}
+        risk = calculate_risk("vulnerability", payload, context={"endpoint_id": endpoint.id, "company_id": endpoint.company_id})
+        event = Event(
+            company_id=endpoint.company_id,
+            endpoint_id=endpoint.id,
+            event_type="vulnerability",
+            severity=risk["severity"],
+            payload=payload,
+            risk_score=str(risk["risk_score"]),
+            flagged=risk["should_alert"],
+        )
+        db.add(event)
+        db.flush()
+        if risk["should_alert"]:
+            alert = Alert(
+                company_id=endpoint.company_id,
+                endpoint_id=endpoint.id,
+                event_id=event.id,
+                title=build_alert_title("vulnerability", risk.get("flags", []), risk["severity"]),
+                description=risk["explanation"],
+                severity=risk["severity"],
+                risk_score=str(risk["risk_score"]),
+                ai_explanation=generate_explanation("vulnerability", risk, endpoint.hostname),
+            )
+            db.add(alert)
+            db.flush()
+            try:
+                from app.realtime.ws import manager as ws_manager
+
+                ws_manager.publish_alert(
+                    endpoint.company_id,
+                    {
+                        "type": "alert_created",
+                        "alert_id": alert.id,
+                        "endpoint_id": endpoint.id,
+                        "event_type": "vulnerability",
+                        "severity": alert.severity,
+                        "risk_score": int(alert.risk_score or 0),
+                        "decision": risk.get("decision"),
+                        "created_at": datetime.utcnow().isoformat(),
+                    },
+                )
+            except Exception:
+                pass
+    db.commit()
+    return {"message": "Software inventory updated", "critical_count": critical_count, "high_count": high_count}

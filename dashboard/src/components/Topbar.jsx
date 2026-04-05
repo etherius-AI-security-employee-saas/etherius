@@ -4,9 +4,9 @@ export default function Topbar({ title, subtitle, onRefresh }) {
   return (
     <header style={{
       minHeight: 72,
-      background: 'rgba(11, 10, 27, 0.72)',
+      background: 'rgba(11, 18, 31, 0.76)',
       backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(153, 117, 255, 0.16)',
+      borderBottom: '1px solid rgba(0, 112, 243, 0.2)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',

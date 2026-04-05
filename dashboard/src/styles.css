@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
-  --bg: #04040c;
-  --bg-elevated: rgba(12, 13, 33, 0.88);
-  --bg-panel: linear-gradient(160deg, rgba(20, 20, 47, 0.9), rgba(10, 11, 26, 0.96));
-  --panel-border: rgba(150, 115, 255, 0.24);
-  --panel-shadow: 0 26px 60px rgba(3, 2, 10, 0.62);
-  --text: #f5f2ff;
-  --muted: #a89fcc;
-  --muted-strong: #cdc4ee;
-  --accent: #9f6bff;
-  --accent-2: #4be3ff;
-  --warn: #ffba52;
-  --danger: #ff6c92;
-  --success: #67e3bb;
+  --bg: #070b14;
+  --bg-elevated: rgba(13, 19, 33, 0.92);
+  --bg-panel: linear-gradient(160deg, rgba(13, 19, 33, 0.96), rgba(8, 13, 24, 0.98));
+  --panel-border: rgba(0, 112, 243, 0.26);
+  --panel-shadow: 0 24px 54px rgba(1, 8, 18, 0.58);
+  --text: #f0f6ff;
+  --muted: #8ca2c4;
+  --muted-strong: #d2e1f7;
+  --accent: #0070f3;
+  --accent-2: #49a3ff;
+  --warn: #ffa502;
+  --danger: #ff4757;
+  --success: #2ed573;
 }
 
 * {
@@ -27,9 +27,9 @@ body {
   margin: 0;
   font-family: "Space Grotesk", "Manrope", "Segoe UI", system-ui, sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(134, 92, 255, 0.24), transparent 32%),
-    radial-gradient(circle at top right, rgba(75, 227, 255, 0.14), transparent 28%),
-    linear-gradient(180deg, #060512 0%, #020208 100%);
+    radial-gradient(circle at top left, rgba(0, 112, 243, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(73, 163, 255, 0.11), transparent 30%),
+    linear-gradient(180deg, #070b14 0%, #050a13 100%);
   color: var(--text);
 }
 
@@ -72,8 +72,8 @@ a {
   flex: 1;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(120, 86, 255, 0.16), transparent 24%),
-    linear-gradient(180deg, rgba(10, 10, 25, 0.94), rgba(4, 4, 11, 1));
+    radial-gradient(circle at top, rgba(0, 112, 243, 0.14), transparent 24%),
+    linear-gradient(180deg, rgba(9, 15, 28, 0.95), rgba(7, 11, 20, 1));
 }
 
 .page-wrap {
@@ -159,13 +159,13 @@ a {
 .btn-primary {
   border: none;
   color: white;
-  background: linear-gradient(135deg, #995eff, #5f40ff 55%, #48dfff);
-  box-shadow: 0 14px 30px rgba(101, 61, 255, 0.42);
+  background: linear-gradient(135deg, #0070f3, #0058cc 55%, #49a3ff);
+  box-shadow: 0 14px 30px rgba(0, 112, 243, 0.35);
 }
 
 .btn-secondary {
-  background: rgba(17, 17, 37, 0.82);
-  border: 1px solid rgba(154, 118, 255, 0.24);
+  background: rgba(10, 17, 31, 0.84);
+  border: 1px solid rgba(0, 112, 243, 0.24);
   color: var(--muted-strong);
 }
 

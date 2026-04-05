@@ -14,6 +14,8 @@ export default function Endpoints() {
   const [newEp, setNewEp] = useState({ hostname: '', os: 'Windows', ip_address: '', mac_address: '' })
   const [agentResult, setAgentResult] = useState(null)
   const [msg, setMsg] = useState(null)
+  const [remoteMessage, setRemoteMessage] = useState('')
+  const [commandHistory, setCommandHistory] = useState([])
   const [filter, setFilter] = useState('all')
   const resolvedBackendUrl = useMemo(() => {
     const envBase = import.meta.env.VITE_API_BASE_URL
@@ -30,10 +32,12 @@ export default function Endpoints() {
   }).catch(console.error)
 
   const fetchLoginActivity = () => dashboardAPI.loginActivity({ days: 7 }).then(r => setLoginActivity(r.data)).catch(console.error)
+  const fetchCommandHistory = () => dashboardAPI.commandHistory({ limit: 30 }).then(r => setCommandHistory(r.data)).catch(console.error)
 
   useEffect(() => {
     fetch()
     fetchLoginActivity()
+    fetchCommandHistory()
   }, [])
 
   const selectEp = ep => {
@@ -81,6 +85,25 @@ export default function Endpoints() {
   const refreshAll = () => {
     fetch()
     fetchLoginActivity()
+    fetchCommandHistory()
+  }
+
+  const lockScreen = async ep => {
+    await responseAPI.lockScreen(ep.id)
+    setMsg({ type: 'success', text: `Lock screen command queued for ${ep.hostname}` })
+    fetchCommandHistory()
+  }
+
+  const sendRemoteMessage = async ep => {
+    const text = remoteMessage.trim()
+    if (!text) {
+      setMsg({ type: 'error', text: 'Enter a message before sending.' })
+      return
+    }
+    await responseAPI.remoteMessage(ep.id, text)
+    setRemoteMessage('')
+    setMsg({ type: 'success', text: `Message queued for ${ep.hostname}` })
+    fetchCommandHistory()
   }
 
   return (
@@ -236,6 +259,30 @@ export default function Endpoints() {
                       <span style={{ color: Number(event.risk_score) > 60 ? '#ff9a9a' : 'var(--muted)' }}>{event.risk_score}/100</span>
                     </div>
                     <div style={{ marginTop: 6, color: 'var(--muted)' }}>{new Date(event.created_at).toLocaleString()}</div>
+                  </div>
+                ))}
+
+                <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+                  Remote Controls
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <button className="btn-secondary" onClick={() => lockScreen(selected)} style={{ padding: '8px 10px', color: '#ff9a9a' }}>
+                    Lock Screen
+                  </button>
+                </div>
+                <input className="field-input" placeholder="Send remote security message..." value={remoteMessage} onChange={event => setRemoteMessage(event.target.value)} />
+                <button className="btn-secondary" onClick={() => sendRemoteMessage(selected)} style={{ marginTop: 8, padding: '8px 10px' }}>
+                  Send Message
+                </button>
+
+                <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+                  Command History
+                </div>
+                {commandHistory.slice(0, 6).map(item => (
+                  <div key={item.id} className="soft-note" style={{ marginBottom: 8 }}>
+                    <div style={{ fontWeight: 700 }}>{item.command_type}</div>
+                    <div style={{ marginTop: 4, color: 'var(--muted)', fontSize: 12 }}>{item.status}</div>
+                    <div style={{ marginTop: 4, color: 'var(--muted)', fontSize: 12 }}>{new Date(item.created_at).toLocaleString()}</div>
                   </div>
                 ))}
               </>

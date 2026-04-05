@@ -38,9 +38,25 @@ export const dashboardAPI = {
   updateAlert: (id, data) => api.patch(`/api/dashboard/alerts/${id}`, data),
   endpoints: () => api.get('/api/dashboard/endpoints'),
   endpointEvents: (id) => api.get(`/api/dashboard/endpoints/${id}/events`),
+  events: (params) => api.get('/api/dashboard/events', { params }),
   loginActivity: (params) => api.get('/api/dashboard/login-activity', { params }),
   blockedIPs: () => api.get('/api/dashboard/blocked-ips'),
   auditLogs: () => api.get('/api/dashboard/audit-logs'),
+  usbPolicy: () => api.get('/api/dashboard/usb-policy'),
+  setUsbPolicy: (policy) => api.post('/api/dashboard/usb-policy', { policy }),
+  usbWhitelist: () => api.get('/api/dashboard/usb-whitelist'),
+  upsertUsbWhitelist: (payload) => api.post('/api/dashboard/usb-whitelist', payload),
+  appBlacklist: () => api.get('/api/dashboard/app-blacklist'),
+  addAppBlacklist: (payload) => api.post('/api/dashboard/app-blacklist', payload),
+  removeAppBlacklist: (id) => api.delete(`/api/dashboard/app-blacklist/${id}`),
+  blockedDomains: () => api.get('/api/dashboard/blocked-domains'),
+  addBlockedDomain: (payload) => api.post('/api/dashboard/blocked-domains', payload),
+  removeBlockedDomain: (id) => api.delete(`/api/dashboard/blocked-domains/${id}`),
+  insiderScores: (params) => api.get('/api/dashboard/insider-scores', { params }),
+  vulnerabilities: () => api.get('/api/dashboard/vulnerabilities'),
+  commandHistory: (params) => api.get('/api/dashboard/command-history', { params }),
+  reportSummary: (params) => api.get('/api/dashboard/reports/security-summary', { params }),
+  reportPdf: (params) => api.get('/api/dashboard/reports/export-pdf', { params, responseType: 'blob' }),
 }
 
 export const responseAPI = {
@@ -48,6 +64,8 @@ export const responseAPI = {
   unblockIP: (id) => api.delete(`/api/response/unblock-ip/${id}`),
   isolate: (endpoint_id, reason) => api.post('/api/response/isolate', { endpoint_id, reason }),
   unisolate: (endpoint_id) => api.post('/api/response/unisolate', { endpoint_id }),
+  lockScreen: (endpoint_id) => api.post('/api/response/lock-screen', { endpoint_id }),
+  remoteMessage: (endpoint_id, message) => api.post('/api/response/remote-message', { endpoint_id, message }),
 }
 
 export const agentAPI = {
@@ -59,4 +77,13 @@ export const licenseAPI = {
   createEmployeeKey: (data) => api.post('/api/licenses/employee', data),
   listEmployeeKeys: () => api.get('/api/licenses/employee'),
   revokeEmployeeKey: (id) => api.patch(`/api/licenses/employee/${id}/revoke`),
+}
+
+export function buildCompanyWebSocket(companyId) {
+  const token = localStorage.getItem('etherius_token')
+  if (!token || !companyId) return null
+  const envBase = import.meta.env.VITE_API_BASE_URL || window.location.origin
+  const normalized = envBase.endsWith('/') ? envBase.slice(0, -1) : envBase
+  const wsBase = normalized.replace(/^http/, 'ws')
+  return `${wsBase}/ws/${companyId}?token=${encodeURIComponent(token)}`
 }

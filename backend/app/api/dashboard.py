@@ -29,6 +29,26 @@ def stats(db: Session = Depends(get_db), u: User = Depends(get_current_user)):
         func.date(Event.created_at) == func.current_date()
     ).count()
     blocked_ips = db.query(BlockedIP).filter(BlockedIP.company_id == cid, BlockedIP.is_active == True).count()
+    dlp_events_today = db.query(Event).filter(
+        Event.company_id == cid,
+        Event.event_type == "dlp",
+        func.date(Event.created_at) == func.current_date(),
+    ).count()
+    usb_events_today = db.query(Event).filter(
+        Event.company_id == cid,
+        Event.event_type == "usb",
+        func.date(Event.created_at) == func.current_date(),
+    ).count()
+    blocked_app_attempts_today = db.query(Event).filter(
+        Event.company_id == cid,
+        Event.event_type == "app_blacklist",
+        func.date(Event.created_at) == func.current_date(),
+    ).count()
+    web_violations_today = db.query(Event).filter(
+        Event.company_id == cid,
+        Event.event_type == "web",
+        func.date(Event.created_at) == func.current_date(),
+    ).count()
     login_events_today = db.query(Event).filter(
         Event.company_id == cid,
         Event.event_type == "employee_login",
@@ -45,6 +65,10 @@ def stats(db: Session = Depends(get_db), u: User = Depends(get_current_user)):
         "open_alerts": open_alerts, "critical_alerts": critical,
         "high_alerts": high, "events_today": today_events,
         "blocked_ips": blocked_ips,
+        "dlp_events_today": dlp_events_today,
+        "usb_events_today": usb_events_today,
+        "blocked_app_attempts_today": blocked_app_attempts_today,
+        "web_violations_today": web_violations_today,
         "login_events_today": login_events_today,
         "logout_events_today": logout_events_today,
     }
@@ -80,6 +104,31 @@ def endpoint_events(endpoint_id: str, limit: int = Query(50, le=200),
     evs = db.query(Event).filter(Event.endpoint_id == endpoint_id).order_by(desc(Event.created_at)).limit(limit).all()
     return [{"id":e.id,"event_type":e.event_type,"severity":e.severity,
              "risk_score":e.risk_score,"payload":e.payload,"created_at":e.created_at} for e in evs]
+
+
+@router.get("/events")
+def events(
+    event_type: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    u: User = Depends(get_current_user),
+):
+    q = db.query(Event).filter(Event.company_id == u.company_id)
+    if event_type:
+        q = q.filter(Event.event_type == event_type)
+    rows = q.order_by(desc(Event.created_at)).limit(limit).all()
+    return [
+        {
+            "id": row.id,
+            "endpoint_id": row.endpoint_id,
+            "event_type": row.event_type,
+            "severity": row.severity,
+            "risk_score": row.risk_score,
+            "payload": row.payload,
+            "created_at": row.created_at,
+        }
+        for row in rows
+    ]
 
 
 @router.get("/login-activity")
