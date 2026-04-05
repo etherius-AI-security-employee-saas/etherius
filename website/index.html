@@ -1,128 +1,172 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Etherius | Enterprise Endpoint Security Suite</title>
+    <title>Etherius | Enterprise Security Suite</title>
     <meta
       name="description"
-      content="Etherius is a premium one-setup endpoint security suite with CEO license control, manager-only dashboard access, and employee AI protection."
+      content="Etherius is a premium one-installer enterprise security platform with manager-only controls, employee protection, and AI-powered threat operations."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" type="image/png" href="./assets/etherius-suite.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="fx fx-a"></div>
-    <div class="fx fx-b"></div>
-    <div class="fx fx-c"></div>
-    <div class="grid"></div>
+    <div class="bg fx-1"></div>
+    <div class="bg fx-2"></div>
+    <div class="bg fx-3"></div>
+    <div class="mesh"></div>
 
-    <header class="topbar">
+    <header class="topbar reveal">
       <div class="brand">
         <img src="./assets/etherius-suite.png" alt="Etherius logo" />
         <div>
           <strong>ETHERIUS</strong>
-          <span>Corporate Security Suite</span>
+          <span>Enterprise Endpoint Security</span>
         </div>
       </div>
-      <a class="btn btn-primary" href="#download">Download Setup</a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#flow">Flow</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn btn-primary" href="#download">Download Setup</a>
+      </nav>
     </header>
 
     <main class="container">
-      <section class="hero card">
-        <div>
-          <p class="tag">ONE SETUP. ROLE-LOCKED ACCESS. AI-POWERED PROTECTION.</p>
-          <h1>Premium cyber defense for modern companies.</h1>
+      <section class="hero card reveal">
+        <div class="hero-copy">
+          <p class="eyebrow">ONE INSTALLER | ROLE-LOCKED ACCESS | AI DEFENSE</p>
+          <h1>Corporate-grade protection with premium control experience.</h1>
           <p>
-            Etherius runs as one desktop software. Managers get dashboard controls only after license activation.
-            Employees use the same app for protected endpoint mode without admin control access.
+            Etherius runs as one software setup for manager and employee roles. Manager dashboard unlocks only after
+            valid subscription activation, while employees stay in protected runtime mode with no admin controls.
           </p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="#download">Get Etherius Setup</a>
-            <a class="btn btn-muted" href="#tutorial">Read Tutorial</a>
+            <a class="btn btn-primary" href="#download">Secure Download</a>
+            <a class="btn btn-ghost" href="#tutorial">Activation Tutorial</a>
           </div>
         </div>
-        <div class="hero-orb">
-          <div class="ring ring-1"></div>
-          <div class="ring ring-2"></div>
-          <div class="ring ring-3"></div>
-          <div class="core">
-            <span>ETHERIUS CORE</span>
-            <strong>ACTIVE</strong>
+        <div class="hero-visual">
+          <div class="radar"></div>
+          <div class="panel panel-a">
+            <span>Threat Engine</span>
+            <strong>Live</strong>
+          </div>
+          <div class="panel panel-b">
+            <span>Manager Access</span>
+            <strong>Subscription Locked</strong>
+          </div>
+          <div class="panel panel-c">
+            <span>Endpoint Status</span>
+            <strong id="live-endpoint-text">Awaiting activation</strong>
           </div>
         </div>
       </section>
 
-      <section class="kpi-grid">
-        <article class="card">
-          <h3>Seat-Limited Licensing</h3>
-          <p>Sell exact employee capacity per customer (example: 300 seats).</p>
+      <section class="kpis reveal">
+        <article class="card"><strong>Seat-Limited Licensing</strong><p>Issue exact employee capacity per customer.</p></article>
+        <article class="card"><strong>Manager-Only Dashboard</strong><p>Admin controls hidden unless manager is authenticated.</p></article>
+        <article class="card"><strong>Unified Software</strong><p>One setup package for all roles with role-based lock.</p></article>
+        <article class="card"><strong>AI Security Pipeline</strong><p>Detection, scoring, escalation, and guided response.</p></article>
+      </section>
+
+      <section id="features" class="features reveal">
+        <article class="card feature">
+          <h3>Advanced AI Risk Correlation</h3>
+          <p>Behavior, anomaly, insider, DLP, USB, and app signals merged into one decision flow.</p>
         </article>
-        <article class="card">
-          <h3>Manager-Only Dashboard</h3>
-          <p>Dashboard stays hidden from employee mode and opens only with manager credentials.</p>
+        <article class="card feature">
+          <h3>Remote Incident Response</h3>
+          <p>Manager can issue endpoint lock and secure message directly from the software dashboard.</p>
         </article>
-        <article class="card">
-          <h3>AI Security Engine</h3>
-          <p>Behavior analysis, threat scanning, and high-risk alert escalation to manager view.</p>
+        <article class="card feature">
+          <h3>Policy Enforcement</h3>
+          <p>USB policy, app blacklist, and blocked domains are managed from manager view with live sync.</p>
+        </article>
+        <article class="card feature">
+          <h3>Insider Threat Intelligence</h3>
+          <p>Per-employee scoring with trend visibility and risk factor explainability.</p>
+        </article>
+        <article class="card feature">
+          <h3>Vulnerability Visibility</h3>
+          <p>Software inventory and vulnerability indicators summarized per endpoint.</p>
+        </article>
+        <article class="card feature">
+          <h3>Compliance Reporting</h3>
+          <p>Operational security summary and export-ready reports for audits.</p>
         </article>
       </section>
 
-      <section class="card flow">
-        <h2>Activation Flow</h2>
+      <section id="flow" class="card flow reveal">
+        <h2>Activation and Access Flow</h2>
         <div class="flow-grid">
-          <div><span>1</span><p>CEO issues customer subscription key with fixed employee quantity.</p></div>
-          <div><span>2</span><p>Customer manager installs same software and activates with subscription key.</p></div>
-          <div><span>3</span><p>Manager generates employee keys inside software (within purchased seat limit).</p></div>
-          <div><span>4</span><p>Employees activate in same software and protection data streams to manager dashboard.</p></div>
+          <div><span>1</span><p>CEO issues a customer subscription key with fixed employee seat quantity.</p></div>
+          <div><span>2</span><p>Customer manager installs the same software and activates manager access using that key.</p></div>
+          <div><span>3</span><p>Manager creates employee activation keys inside manager dashboard, limited by purchased seats.</p></div>
+          <div><span>4</span><p>Employees activate from employee section and endpoint telemetry appears in manager dashboard.</p></div>
         </div>
       </section>
 
-      <section id="tutorial" class="card tutorial">
+      <section class="access reveal">
+        <article class="card">
+          <h3>Manager View</h3>
+          <p>Available only for activated customer managers. Includes employee status, alerts, policies, and reports.</p>
+        </article>
+        <article class="card">
+          <h3>Employee View</h3>
+          <p>Focused on device enrollment, runtime protection, and scans. No manager admin controls are exposed.</p>
+        </article>
+      </section>
+
+      <section id="tutorial" class="card tutorial reveal">
         <h2>Single Complete Tutorial</h2>
         <ol>
-          <li>CEO: open CEO console, create subscription key with exact employee quantity, send key to customer manager.</li>
-          <li>Customer Manager: install Etherius setup, open Manager View, activate with subscription key, sign in, generate employee keys.</li>
-          <li>Employee: install same setup, stay in Employee View, enter company code + employee key, enroll device, start protection.</li>
-          <li>Manager dashboard inside software shows endpoint status, alerts, and employee login/logout activity.</li>
-          <li>Only subscribed customers can activate; non-subscribed users cannot unlock manager dashboard.</li>
+          <li>CEO creates subscription key in CEO control console with seat count (example: 300).</li>
+          <li>Customer manager installs Etherius setup and activates using that subscription key.</li>
+          <li>Manager signs in, generates employee keys, and shares each key to employees.</li>
+          <li>Employee installs same setup, activates employee mode, and starts protection.</li>
+          <li>Manager monitor panel inside software shows endpoint state, alerts, and login/logout activity.</li>
         </ol>
       </section>
 
-      <section class="card cloud">
-        <h2>Cloud Requirements</h2>
-        <ul>
-          <li>Public website domain for distribution and manuals.</li>
-          <li>Secure API domain for activation, telemetry, and manager dashboard data.</li>
-          <li>Production database (PostgreSQL recommended) for persistent customer and endpoint data.</li>
-        </ul>
+      <section id="faq" class="faq reveal">
+        <details class="card" open>
+          <summary>Is manager dashboard public on this website?</summary>
+          <p>No. This page only distributes installer and tutorial information. Manager dashboard access stays inside software and requires valid subscription plus manager login.</p>
+        </details>
+        <details class="card">
+          <summary>Do employees see manager controls?</summary>
+          <p>No. Employee role has protection and scan functions only. Policy and administrative controls remain restricted.</p>
+        </details>
+        <details class="card">
+          <summary>Do I need separate setup for employee and manager?</summary>
+          <p>No. One installer package is used for both roles; access is determined by activation and sign-in permissions.</p>
+        </details>
       </section>
 
-      <section id="download" class="card download">
+      <section id="download" class="card download reveal">
         <div>
           <h2>Download Etherius Setup</h2>
-          <p>
-            One installer for both manager and employee usage. Role access is enforced inside the software by
-            activation key and account permissions.
-          </p>
-          <p class="secure-note">Public page does not expose private dashboard routes or internal admin controls.</p>
+          <p>Installer package contains the unified production software only. Source code and private operations endpoints are not distributed to customers.</p>
+          <p class="secure-note">Professional distribution page only. No internal route exposure.</p>
         </div>
         <div class="download-box">
           <a id="download-package" class="btn btn-primary btn-block" href="/api/download">Download Secure Setup</a>
-          <p id="release-status">Checking latest secure build...</p>
+          <p id="release-status">Validating build availability...</p>
         </div>
       </section>
     </main>
 
     <footer class="footer">
       <p>Etherius Security Platform</p>
-      <p>Enterprise-grade endpoint protection with controlled subscription operations.</p>
+      <p id="footer-year"></p>
     </footer>
 
     <script src="./app.js"></script>
