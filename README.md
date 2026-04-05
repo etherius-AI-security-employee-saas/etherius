@@ -7,6 +7,7 @@ Etherius is an enterprise-grade cyber defense platform built for organizations t
 1. One installer, dual-role intelligence:
    - same software for manager and employee
    - role boundaries enforced in-app by license and permissions
+   - manager dashboard, policy controls, and endpoint response all inside one desktop suite
 2. CEO-driven commercial control:
    - issue subscription keys with exact employee seat count
    - control activation, validity, and scaling from provider side
@@ -16,6 +17,12 @@ Etherius is an enterprise-grade cyber defense platform built for organizations t
 4. Enterprise-safe protection model:
    - AI-assisted detection and escalation
    - advisory-first behavior to reduce business disruption
+5. Integrated manager control center:
+   - USB policy + whitelist management
+   - app blacklist enforcement controls
+   - web/domain blocking controls
+   - insider threat and vulnerability intelligence views
+   - compliance reporting and PDF export from the same software
 
 ## Product Architecture
 
