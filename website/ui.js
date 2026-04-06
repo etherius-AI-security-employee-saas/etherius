@@ -76,17 +76,33 @@
   const wipe = document.createElement("div");
   wipe.className = "page-wipe";
   document.body.appendChild(wipe);
+
+  const resetWipe = () => {
+    wipe.classList.remove("active");
+  };
+
+  // Back/forward cache can restore the page with classes intact.
+  // Always clear transition overlay on restore/load.
+  resetWipe();
+  window.addEventListener("pageshow", resetWipe);
+  window.addEventListener("popstate", resetWipe);
+
   document.querySelectorAll("a[data-transition='page']").forEach((link) => {
     const href = link.getAttribute("href") || "";
     if (!href.startsWith("/") || href.startsWith("/api")) {
       return;
     }
     link.addEventListener("click", (e) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+        return;
+      }
       e.preventDefault();
       wipe.classList.add("active");
       setTimeout(() => {
         window.location.href = href;
       }, 180);
+      // Safety fallback in case navigation is interrupted.
+      setTimeout(resetWipe, 1200);
     });
   });
 
