@@ -3,6 +3,7 @@ import json
 import os
 import platform
 import random
+import sys
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
@@ -19,7 +20,24 @@ from agent.core.local_scanner import run_threat_scan
 
 DEFAULT_API_URL = os.getenv("ETHERIUS_API_URL", "https://etherius-security-api.vercel.app")
 ROOT = Path(__file__).resolve().parent.parent
-ASSETS = ROOT / "suite" / "assets"
+
+
+def resolve_assets_dir() -> Path:
+    candidates = []
+    if getattr(sys, "frozen", False):
+        meipass = getattr(sys, "_MEIPASS", "")
+        if meipass:
+            candidates.append(Path(meipass) / "suite" / "assets")
+        candidates.append(Path(sys.executable).resolve().parent / "_internal" / "suite" / "assets")
+        candidates.append(Path(sys.executable).resolve().parent / "suite" / "assets")
+    candidates.append(ROOT / "suite" / "assets")
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return ROOT / "suite" / "assets"
+
+
+ASSETS = resolve_assets_dir()
 
 
 def resolve_state_file() -> Path:
@@ -92,6 +110,7 @@ class EtheriusApp:
         self.admin_tab_visible = True
         self.auto_scan_job = None
         self.admin_live_job = None
+        self.scan_running = False
         self.endpoint_selector = None
         self.endpoint_selector_var = tk.StringVar(value="")
         self.remote_message_var = tk.StringVar(value="")
@@ -154,6 +173,11 @@ class EtheriusApp:
         if self.auto_start_on_launch_var.get() and self.employee_token_var.get().strip() and self.employee_endpoint_id_var.get().strip():
             self.root.after(1200, self.start_protection)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        try:
+            if platform.system() == "Windows":
+                self.root.state("zoomed")
+        except Exception:
+            pass
 
     def _set_identity(self):
         try:
@@ -211,6 +235,20 @@ class EtheriusApp:
 
         top = tk.Frame(shell, bg="#060814")
         top.pack(fill="x", pady=(0, 10))
+        self.header_logo_image = None
+        try:
+            for candidate in [ASSETS / "etherius-wordmark.png", ASSETS / "etherius-suite.png"]:
+                if candidate.exists():
+                    self.header_logo_image = tk.PhotoImage(file=str(candidate))
+                    if candidate.name == "etherius-suite.png":
+                        # Keep icon compact in header.
+                        self.header_logo_image = self.header_logo_image.subsample(8, 8)
+                    else:
+                        self.header_logo_image = self.header_logo_image.subsample(4, 4)
+                    tk.Label(top, image=self.header_logo_image, bg="#060814").pack(anchor="w", pady=(0, 4))
+                    break
+        except Exception:
+            pass
         ttk.Label(top, text="Etherius Unified Security Console", style="Header.TLabel").pack(anchor="w")
         ttk.Label(
             top,
@@ -921,11 +959,51 @@ class EtheriusApp:
             headers["Authorization"] = f"Bearer {self.access_token}"
         response = requests.request(method=method, url=url, json=payload, headers=headers, timeout=timeout)
         if response.status_code >= 400:
+            detail_msg = response.text
             try:
-                detail = response.json().get("detail", response.text)
+                body = response.json()
+                detail = body.get("detail", body)
+                if isinstance(detail, list):
+                    parsed = []
+                    for item in detail:
+                        if isinstance(item, dict):
+                            message = str(item.get("msg", "Validation error")).strip()
+                            loc = item.get("loc", [])
+                            field = str(loc[-1]) if isinstance(loc, (list, tuple)) and loc else ""
+                            parsed.append(f"{field}: {message}" if field else message)
+                        else:
+                            parsed.append(str(item))
+                    detail_msg = "; ".join([p for p in parsed if p]) or "Validation failed."
+                elif isinstance(detail, dict):
+                    detail_msg = ", ".join([f"{k}: {v}" for k, v in detail.items()]) or "Request failed."
+                else:
+                    detail_msg = str(detail)
             except Exception:
-                detail = response.text
-            raise RuntimeError(f"{response.status_code}: {detail}")
+                detail_msg = response.text or f"HTTP {response.status_code}"
+            code_hints = {
+                400: "Check entered values.",
+                401: "Authentication failed. Verify credentials.",
+                403: "Access denied or inactive subscription.",
+                404: "Requested resource was not found.",
+                409: "Duplicate/conflicting data.",
+                422: "Some fields are invalid.",
+                429: "Too many attempts. Please wait and retry.",
+            }
+            hint = code_hints.get(response.status_code, "Request failed.")
+            lower_detail = str(detail_msg).lower()
+            if "password must be at least 12 chars" in lower_detail:
+                raise RuntimeError(
+                    "Password policy failed: use at least 12 characters with uppercase, lowercase, number, and symbol."
+                )
+            if "company name already exists" in lower_detail:
+                raise RuntimeError("This company name is already registered. Use a different company name.")
+            if "invalid or expired subscription key" in lower_detail:
+                raise RuntimeError("Subscription key is invalid or expired. Check key value and validity.")
+            if "invalid credentials" in lower_detail:
+                raise RuntimeError("Email or password is incorrect.")
+            if "too many failed logins" in lower_detail:
+                raise RuntimeError("Too many failed sign-in attempts. Please wait 15 minutes and retry.")
+            raise RuntimeError(f"{detail_msg} ({hint})")
         if response.content:
             return response.json()
         return {}
@@ -945,9 +1023,19 @@ class EtheriusApp:
             return
         try:
             self._request("POST", "/api/auth/register", payload=payload, auth=False)
-            self.sign_in_admin(show_success=False)
+            signed_in = self.sign_in_admin(show_success=False)
             self._append_feed("Company activated with subscription license key.")
-            messagebox.showinfo("Activated", "Company activation successful. Dashboard unlocked.")
+            if signed_in:
+                self._show_manager_section()
+                messagebox.showinfo(
+                    "Activated",
+                    "Company activation successful.\n\nManager dashboard is now unlocked in this same software window.",
+                )
+            else:
+                messagebox.showwarning(
+                    "Activated",
+                    "Company activation was successful, but sign-in did not complete.\nPlease sign in with admin email and password.",
+                )
         except Exception as error:
             messagebox.showerror("Activation failed", str(error))
 
@@ -958,7 +1046,7 @@ class EtheriusApp:
         }
         if not payload["email"] or not payload["password"]:
             messagebox.showerror("Missing credentials", "Enter admin email and password.")
-            return
+            return False
         try:
             data = self._request("POST", "/api/auth/login", payload=payload, auth=False)
             role = str(data.get("role", "")).lower()
@@ -974,11 +1062,20 @@ class EtheriusApp:
             self.refresh_admin_dashboard()
             self._schedule_admin_live_refresh()
             if show_success:
-                messagebox.showinfo("Signed in", "Admin dashboard is now unlocked in this software.")
+                messagebox.showinfo(
+                    "Signed in",
+                    "Admin dashboard is unlocked in this software.\n\n"
+                    "Open it in this same Manager Dashboard screen:\n"
+                    "- In-App Customer Dashboard\n"
+                    "- Manager Control Center\n\n"
+                    "If not fully visible, maximize the window.",
+                )
             self._append_feed("Admin signed in and dashboard unlocked.")
+            return True
         except Exception as error:
             self._set_admin_unlocked(False)
             messagebox.showerror("Sign in failed", str(error))
+            return False
 
     def sign_out_admin(self):
         self.access_token = ""
@@ -1452,73 +1549,111 @@ class EtheriusApp:
         messagebox.showinfo("Saved", "Security settings saved successfully.")
 
     def run_quick_scan(self):
-        self._run_local_scan(deep=False)
+        self._start_scan(deep=False)
 
     def run_deep_scan(self):
-        self._run_local_scan(deep=True)
+        self._start_scan(deep=True)
 
-    def _run_local_scan(self, deep=False):
-        try:
-            policy_mode = str(self.policy_mode_var.get() or "advisory").lower()
-            force_deep = deep or policy_mode == "strict"
-            scan_data = run_threat_scan(deep=force_deep)
-            summary = scan_data["summary"]
-            findings = scan_data["findings"]
-            raw_score = int(summary.get("local_scan_risk_score", 0))
-            sensitivity = int(self.ai_sensitivity_var.get() or 70)
-            ai_profile = str(self.ai_profile_var.get() or "balanced").lower()
-            profile_shift = {"conservative": -6, "balanced": 0, "aggressive": 8}.get(ai_profile, 0)
-            adjusted_score = max(0, min(100, raw_score + int((sensitivity - 70) * 0.4) + profile_shift))
-            adjusted_severity = (
-                "critical" if adjusted_score >= 85 else "high" if adjusted_score >= 65 else "medium" if adjusted_score >= 40 else "low"
-            )
-            recommended_action = (
-                "ISOLATE_RECOMMENDED"
-                if adjusted_score >= 85
-                else "AUTO_BLOCK_RECOMMENDED"
-                if adjusted_score >= 65
-                else "ALERT_RECOMMENDED"
-                if adjusted_score >= 40
-                else "MONITOR"
-            )
-            summary["policy_mode"] = policy_mode
-            summary["scan_depth"] = "deep" if force_deep else "quick"
-            summary["local_scan_risk_score_raw"] = raw_score
-            summary["local_scan_risk_score"] = adjusted_score
-            summary["local_scan_severity"] = adjusted_severity
-            summary["ai_sensitivity"] = sensitivity
-            summary["ai_profile"] = ai_profile
-            summary["recommended_action"] = recommended_action
-            self.scan_summary_var.set(
-                f"{summary['scan_depth'].upper()} scan: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100), action={recommended_action}"
-            )
-            self.posture_score_var.set(
-                f"Protection posture: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100)"
-            )
-            self._render_scan_results(summary, findings)
-            self._append_feed(
-                f"{summary['scan_depth'].upper()} scan completed with adjusted risk {summary['local_scan_risk_score']} (policy={policy_mode}, profile={ai_profile})."
-            )
+    def _start_scan(self, deep=False):
+        if self.scan_running:
+            self._append_feed("Scan already running. Please wait.")
+            return
+        self.scan_running = True
+        self.scan_summary_var.set("Scan running...")
+        policy_mode = str(self.policy_mode_var.get() or "advisory").lower()
+        sensitivity = int(self.ai_sensitivity_var.get() or 70)
+        ai_profile = str(self.ai_profile_var.get() or "balanced").lower()
+        notify_manager = bool(self.notify_manager_var.get())
 
-            event_payload = {
-                **summary,
-                "findings_preview": {
-                    "process_hits": findings.get("process_hits", [])[:5],
-                    "network_hits": findings.get("network_hits", [])[:5],
-                    "filesystem_hits": findings.get("filesystem_hits", [])[:5],
-                },
-            }
+        def worker():
+            try:
+                result = self._run_local_scan(
+                    deep=deep,
+                    policy_mode=policy_mode,
+                    sensitivity=sensitivity,
+                    ai_profile=ai_profile,
+                    notify_manager=notify_manager,
+                )
+                self.root.after(0, lambda: self._apply_scan_result(result))
+            except Exception as error:
+                self.root.after(0, lambda: messagebox.showerror("Scan failed", str(error)))
+            finally:
+                self.root.after(0, self._finish_scan)
 
-            # Advisory-only by design: scan reports and alerts, but does not auto-block business operations.
-            if self.notify_manager_var.get():
-                self._send_scan_event(event_payload)
-            else:
-                self._append_feed("Manager notifications disabled for scan telemetry by policy setting.")
+        import threading
 
-            if policy_mode == "strict" and adjusted_score >= 85:
-                self._append_feed("Strict policy alert: isolate endpoint review recommended (manual manager decision).")
-        except Exception as error:
-            messagebox.showerror("Scan failed", str(error))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_scan(self):
+        self.scan_running = False
+
+    def _run_local_scan(self, deep=False, policy_mode="advisory", sensitivity=70, ai_profile="balanced", notify_manager=True):
+        force_deep = deep or policy_mode == "strict"
+        scan_data = run_threat_scan(deep=force_deep)
+        summary = scan_data["summary"]
+        findings = scan_data["findings"]
+        raw_score = int(summary.get("local_scan_risk_score", 0))
+        profile_shift = {"conservative": -6, "balanced": 0, "aggressive": 8}.get(ai_profile, 0)
+        adjusted_score = max(0, min(100, raw_score + int((sensitivity - 70) * 0.4) + profile_shift))
+        adjusted_severity = (
+            "critical" if adjusted_score >= 85 else "high" if adjusted_score >= 65 else "medium" if adjusted_score >= 40 else "low"
+        )
+        recommended_action = (
+            "ISOLATE_RECOMMENDED"
+            if adjusted_score >= 85
+            else "AUTO_BLOCK_RECOMMENDED"
+            if adjusted_score >= 65
+            else "ALERT_RECOMMENDED"
+            if adjusted_score >= 40
+            else "MONITOR"
+        )
+        summary["policy_mode"] = policy_mode
+        summary["scan_depth"] = "deep" if force_deep else "quick"
+        summary["local_scan_risk_score_raw"] = raw_score
+        summary["local_scan_risk_score"] = adjusted_score
+        summary["local_scan_severity"] = adjusted_severity
+        summary["ai_sensitivity"] = sensitivity
+        summary["ai_profile"] = ai_profile
+        summary["recommended_action"] = recommended_action
+        event_payload = {
+            **summary,
+            "findings_preview": {
+                "process_hits": findings.get("process_hits", [])[:5],
+                "network_hits": findings.get("network_hits", [])[:5],
+                "filesystem_hits": findings.get("filesystem_hits", [])[:5],
+            },
+        }
+        return {
+            "summary": summary,
+            "findings": findings,
+            "event_payload": event_payload,
+            "notify_manager": notify_manager,
+        }
+
+    def _apply_scan_result(self, result):
+        summary = result["summary"]
+        findings = result["findings"]
+        event_payload = result["event_payload"]
+        notify_manager = result["notify_manager"]
+        policy_mode = summary.get("policy_mode", "advisory")
+        ai_profile = summary.get("ai_profile", "balanced")
+        recommended_action = summary.get("recommended_action", "MONITOR")
+        self.scan_summary_var.set(
+            f"{summary['scan_depth'].upper()} scan: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100), action={recommended_action}"
+        )
+        self.posture_score_var.set(
+            f"Protection posture: {summary['local_scan_severity']} ({summary['local_scan_risk_score']}/100)"
+        )
+        self._render_scan_results(summary, findings)
+        self._append_feed(
+            f"{summary['scan_depth'].upper()} scan completed with adjusted risk {summary['local_scan_risk_score']} (policy={policy_mode}, profile={ai_profile})."
+        )
+        if notify_manager:
+            self._send_scan_event(event_payload)
+        else:
+            self._append_feed("Manager notifications disabled for scan telemetry by policy setting.")
+        if policy_mode == "strict" and int(summary.get("local_scan_risk_score", 0)) >= 85:
+            self._append_feed("Strict policy alert: isolate endpoint review recommended (manual manager decision).")
 
     def _schedule_auto_scan(self, initial_delay_seconds=5):
         self._cancel_auto_scan()
@@ -1562,8 +1697,14 @@ class EtheriusApp:
         self.auto_scan_job = None
         if not self.agent.running:
             return
+        if self.scan_running:
+            interval_minutes = self._safe_int(self.auto_scan_interval_var.get().strip(), 30)
+            if interval_minutes <= 0:
+                interval_minutes = 30
+            self.auto_scan_job = self.root.after(interval_minutes * 60 * 1000, self._auto_scan_tick)
+            return
         deep = self.policy_mode_var.get().strip().lower() == "strict" or random.random() < 0.25
-        self._run_local_scan(deep=deep)
+        self._start_scan(deep=deep)
         interval_minutes = self._safe_int(self.auto_scan_interval_var.get().strip(), 30)
         if interval_minutes <= 0:
             interval_minutes = 30
