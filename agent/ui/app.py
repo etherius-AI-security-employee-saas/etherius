@@ -91,13 +91,18 @@ class AgentApp:
         brand_wrap = tk.Frame(top, bg="#070b14")
         brand_wrap.pack(anchor="w")
         self.logo_image = None
-        logo_path = Path(__file__).resolve().parent.parent / "assets" / "etherius-logo.jpeg"
-        try:
-            image = Image.open(logo_path).resize((64, 64))
-            self.logo_image = ImageTk.PhotoImage(image)
-            tk.Label(brand_wrap, image=self.logo_image, bg="#070b14").pack(side="left", padx=(0, 14))
-        except Exception:
-            pass
+        assets_dir = Path(__file__).resolve().parent.parent / "assets"
+        logo_candidates = [assets_dir / "etherius-logo.png", assets_dir / "etherius-logo.jpeg"]
+        for logo_path in logo_candidates:
+            try:
+                if not logo_path.exists():
+                    continue
+                image = Image.open(logo_path).convert("RGBA").resize((64, 64), Image.Resampling.LANCZOS)
+                self.logo_image = ImageTk.PhotoImage(image)
+                tk.Label(brand_wrap, image=self.logo_image, bg="#070b14").pack(side="left", padx=(0, 14))
+                break
+            except Exception:
+                continue
 
         text_wrap = tk.Frame(brand_wrap, bg="#070b14")
         text_wrap.pack(side="left")
