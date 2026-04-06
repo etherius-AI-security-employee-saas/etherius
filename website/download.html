@@ -1,0 +1,98 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Etherius Download | Setup Center</title>
+  <meta name="description" content="Download the latest Etherius setup package and deploy one installer for manager and employee modes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/ui.css" />
+</head>
+<body data-page="download">
+  <header class="topbar-wrap">
+    <div class="topbar">
+      <a href="/" data-transition="page" class="brand" aria-label="Etherius home"><img src="/assets/etherius-suite.png" alt="Etherius" /><span>ETHERIUS</span></a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="/" data-transition="page" data-page="home">Home</a>
+        <a href="/inside" data-transition="page" data-page="inside">Inside</a>
+        <a href="/features" data-transition="page" data-page="features">Features</a>
+        <a href="/download" data-transition="page" data-page="download">Download</a>
+      </nav>
+      <div class="topbar-right">
+        <a href="/download" data-transition="page" class="btn primary desktop-only">Get Setup</a>
+        <button class="btn ghost menu-btn mobile-only" aria-label="Open menu" aria-expanded="false">Menu</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="eyebrow reveal">Download Center</p>
+        <h1 class="reveal">Install Etherius In Minutes</h1>
+        <p class="subtext reveal">Single setup package. Activation decides role mode: customer admin dashboard access or employee protection mode.</p>
+        <div class="badge-row reveal">
+          <span class="badge">Latest setup: Etherius-Setup.exe</span>
+          <span class="badge">Version: v1.1</span>
+          <span class="badge">File channel: production</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <h2 class="section-title reveal">Download Options</h2>
+        <div class="download-grid">
+          <article class="download-card reveal">
+            <span class="kicker">Recommended</span>
+            <h3>Windows Setup</h3>
+            <p class="version">Etherius Agent v1.1</p>
+            <p class="meta">Compatible: Windows 10/11</p>
+            <p class="meta">Approx size: 17 MB</p>
+            <div class="hero-actions"><a href="/api/download" class="btn primary" aria-label="Download Etherius setup">Secure Download</a></div>
+          </article>
+          <article class="download-card reveal">
+            <span class="kicker">Activation</span>
+            <h3>Manager Access Flow</h3>
+            <p class="meta">1. Install software</p>
+            <p class="meta">2. Enter Customer Admin license key</p>
+            <p class="meta">3. Unlock manager dashboard section</p>
+            <div class="hero-actions"><a href="/inside" data-transition="page" class="btn ghost">View Role Flow</a></div>
+          </article>
+          <article class="download-card reveal">
+            <span class="kicker">Manual</span>
+            <h3>Python Package</h3>
+            <p class="meta">For advanced environments</p>
+            <p class="meta">Command:</p>
+            <p class="version">pip install etherius-agent</p>
+            <div class="hero-actions"><button class="btn ghost" data-copy="pip install etherius-agent" aria-label="Copy pip command">Copy Command</button></div>
+          </article>
+        </div>
+
+        <div class="note reveal">
+          <strong>After install</strong>: customer admin activates with company key and receives employee allocation based on purchased quantity. Employees activate with employee key only and run protection mode.
+        </div>
+
+        <div class="grid">
+          <article class="card reveal"><span class="kicker">Requirement</span><h3>System</h3><p>Windows 10/11, 512MB RAM minimum, internet connection for telemetry and policy sync.</p></article>
+          <article class="card reveal"><span class="kicker">Security</span><h3>Role Boundaries</h3><p>Employee mode cannot access manager dashboard controls. Manager mode is unlocked only by valid admin key.</p></article>
+          <article class="card reveal"><span class="kicker">Operations</span><h3>What Manager Sees</h3><p>Employee status, alerts, risk level, login/logout activity, and action history in one software console.</p></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="container">
+      <div class="hero-actions">
+        <a href="/api/download" class="btn primary">Download Now</a>
+        <a href="/features" data-transition="page" class="btn ghost">See Feature Matrix</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/ui.js"></script>
+</body>
+</html>
