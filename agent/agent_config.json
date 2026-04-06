@@ -7,5 +7,14 @@
   "endpoint_id": "PASTE_YOUR_ENDPOINT_ID_HERE",
   "heartbeat_interval": 30,
   "event_batch_interval": 10,
-  "version": "1.0.0"
+  "policy_mode": "advisory",
+  "ai_profile": "balanced",
+  "ai_sensitivity": 70,
+  "download_shield_enabled": true,
+  "download_shield_quarantine": true,
+  "exploit_guard_enabled": true,
+  "exploit_guard_auto_kill": true,
+  "beacon_guard_enabled": true,
+  "beacon_guard_block": false,
+  "version": "1.1.0"
 }

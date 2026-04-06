@@ -124,6 +124,12 @@ class EtheriusApp:
         self.deep_scan_on_start_var = tk.BooleanVar(value=self._to_bool(self.state.get("deep_scan_on_start", True)))
         self.email_risk_alert_var = tk.BooleanVar(value=self._to_bool(self.state.get("email_risk_alert", True)))
         self.web_control_enforce_var = tk.BooleanVar(value=self._to_bool(self.state.get("web_control_enforce", True)))
+        self.download_shield_var = tk.BooleanVar(value=self._to_bool(self.state.get("download_shield_enabled", True)))
+        self.download_shield_quarantine_var = tk.BooleanVar(value=self._to_bool(self.state.get("download_shield_quarantine", True)))
+        self.exploit_guard_var = tk.BooleanVar(value=self._to_bool(self.state.get("exploit_guard_enabled", True)))
+        self.exploit_guard_auto_kill_var = tk.BooleanVar(value=self._to_bool(self.state.get("exploit_guard_auto_kill", True)))
+        self.beacon_guard_var = tk.BooleanVar(value=self._to_bool(self.state.get("beacon_guard_enabled", True)))
+        self.beacon_guard_block_var = tk.BooleanVar(value=self._to_bool(self.state.get("beacon_guard_block", False)))
 
         self._set_identity()
         self._configure_styles()
@@ -534,13 +540,18 @@ class EtheriusApp:
             ("Network Guard", "#cedbff"),
             ("File Monitor", "#9fb0d8"),
             ("Threat Response", "#ffb763"),
+            ("Download Shield", "#8be8c0"),
+            ("Exploit Guard", "#ffc783"),
+            ("Beacon Guard", "#ffb763"),
         ]
         for idx, (name, color) in enumerate(module_items):
             cell = tk.Frame(modules, bg="#0a1124", bd=1, relief="groove")
-            cell.grid(row=0, column=idx, sticky="nsew", padx=(0 if idx == 0 else 6, 0))
+            row = idx // 4
+            col = idx % 4
+            cell.grid(row=row, column=col, sticky="nsew", padx=(0 if col == 0 else 6, 0), pady=(0 if row == 0 else 6, 0))
             tk.Label(cell, text=name, bg="#0a1124", fg="#9fb0d8", font=("Segoe UI", 9)).pack(anchor="w", padx=8, pady=(6, 0))
             tk.Label(cell, text="Active", bg="#0a1124", fg=color, font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=8, pady=(2, 7))
-            modules.grid_columnconfigure(idx, weight=1)
+            modules.grid_columnconfigure(col, weight=1)
 
         tk.Label(setup, textvariable=self.employee_runtime_var, bg="#141f3d", fg="#8be8c0", anchor="w").pack(fill="x", padx=10)
         tk.Label(setup, textvariable=self.employee_heartbeat_var, bg="#141f3d", fg="#9fb0d8", anchor="w").pack(fill="x", padx=10)
@@ -679,6 +690,66 @@ class EtheriusApp:
             activeforeground="#dfe8ff",
             selectcolor="#20305a",
         ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Enable Download Shield (suspicious file detection)",
+            variable=self.download_shield_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Auto-quarantine suspicious downloads in balanced/strict mode",
+            variable=self.download_shield_quarantine_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Enable Exploit Guard (office/browser exploit-chain detection)",
+            variable=self.exploit_guard_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Auto-kill exploit-chain process in balanced/strict mode",
+            variable=self.exploit_guard_auto_kill_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Enable Beacon Guard (persistent C2/exfil traffic detection)",
+            variable=self.beacon_guard_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Strict mode: apply local outbound firewall block for beacon IPs",
+            variable=self.beacon_guard_block_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
 
         actions = tk.Frame(left, bg="#141f3d")
         actions.pack(fill="x", padx=12, pady=(8, 12))
@@ -698,6 +769,9 @@ class EtheriusApp:
             "- Sensitive-path executable/script inspection",
             "- Email lure and phishing-indicator analysis",
             "- USB/App/Web/DLP/Vulnerability policy-integrated telemetry",
+            "- Download Shield for suspicious installer/script quarantining",
+            "- Exploit Guard for office/browser process-chain attacks",
+            "- Beacon Guard for persistent C2/exfiltration traffic patterns",
             "- Local quick/deep risk scanning with decision-aware escalation",
             "",
             "Safety principle:",
@@ -723,6 +797,27 @@ class EtheriusApp:
         if isinstance(value, bool):
             return value
         return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _sync_agent_runtime_config(self):
+        payload = {
+            "backend_url": self.backend_url_var.get().strip(),
+            "company_code": self.employee_company_code_var.get().strip(),
+            "employee_key": self.employee_key_var.get().strip(),
+            "activation_code": self.employee_activation_var.get().strip(),
+            "endpoint_id": self.employee_endpoint_id_var.get().strip(),
+            "agent_token": self.employee_token_var.get().strip(),
+            "policy_mode": self.policy_mode_var.get().strip(),
+            "ai_profile": self.ai_profile_var.get().strip(),
+            "ai_sensitivity": int(self.ai_sensitivity_var.get() or 70),
+            "download_shield_enabled": bool(self.download_shield_var.get()),
+            "download_shield_quarantine": bool(self.download_shield_quarantine_var.get()),
+            "exploit_guard_enabled": bool(self.exploit_guard_var.get()),
+            "exploit_guard_auto_kill": bool(self.exploit_guard_auto_kill_var.get()),
+            "beacon_guard_enabled": bool(self.beacon_guard_var.get()),
+            "beacon_guard_block": bool(self.beacon_guard_block_var.get()),
+        }
+        update_config(payload)
+        return payload
 
     def _request(self, method, path, payload=None, auth=False, timeout=20):
         base = self.backend_url_var.get().strip().rstrip("/")
@@ -1219,16 +1314,7 @@ class EtheriusApp:
             messagebox.showerror("Missing activation", "Enroll first or apply a valid activation code.")
             return
 
-        update_config(
-            {
-                "backend_url": self.backend_url_var.get().strip(),
-                "company_code": self.employee_company_code_var.get().strip(),
-                "employee_key": self.employee_key_var.get().strip(),
-                "activation_code": self.employee_activation_var.get().strip(),
-                "endpoint_id": self.employee_endpoint_id_var.get().strip(),
-                "agent_token": self.employee_token_var.get().strip(),
-            }
-        )
+        self._sync_agent_runtime_config()
         self.agent.start()
         self.employee_runtime_var.set("Protection active")
         self.endpoint_health_var.set("Endpoint health: protection active")
@@ -1254,11 +1340,12 @@ class EtheriusApp:
             messagebox.showerror("Invalid settings", "Live manager sync must be a positive number of seconds.")
             return
         self._save_state()
+        self._sync_agent_runtime_config()
         self.alert_mode_var.set(
             f"Alert mode: {self.policy_mode_var.get().strip()}/{self.ai_profile_var.get().strip()}"
         )
         self._append_feed(
-            f"Security settings saved: mode={self.policy_mode_var.get()}, profile={self.ai_profile_var.get()}, sensitivity={self.ai_sensitivity_var.get()}, interval={interval}m."
+            f"Security settings saved: mode={self.policy_mode_var.get()}, profile={self.ai_profile_var.get()}, sensitivity={self.ai_sensitivity_var.get()}, interval={interval}m, shields(download/exploit/beacon)={int(self.download_shield_var.get())}/{int(self.exploit_guard_var.get())}/{int(self.beacon_guard_var.get())}."
         )
         if self.agent.running:
             self._schedule_auto_scan(initial_delay_seconds=10)
@@ -1501,6 +1588,19 @@ class EtheriusApp:
         self.employee_activation_var.set(cfg.get("activation_code", self.employee_activation_var.get()))
         self.employee_endpoint_id_var.set(cfg.get("endpoint_id", self.employee_endpoint_id_var.get()))
         self.employee_token_var.set(cfg.get("agent_token", self.employee_token_var.get()))
+        self.policy_mode_var.set(str(cfg.get("policy_mode", self.policy_mode_var.get())))
+        self.ai_profile_var.set(str(cfg.get("ai_profile", self.ai_profile_var.get())))
+        self.ai_sensitivity_var.set(self._safe_int(cfg.get("ai_sensitivity", self.ai_sensitivity_var.get()), 70))
+        self.download_shield_var.set(self._to_bool(cfg.get("download_shield_enabled", self.download_shield_var.get())))
+        self.download_shield_quarantine_var.set(
+            self._to_bool(cfg.get("download_shield_quarantine", self.download_shield_quarantine_var.get()))
+        )
+        self.exploit_guard_var.set(self._to_bool(cfg.get("exploit_guard_enabled", self.exploit_guard_var.get())))
+        self.exploit_guard_auto_kill_var.set(
+            self._to_bool(cfg.get("exploit_guard_auto_kill", self.exploit_guard_auto_kill_var.get()))
+        )
+        self.beacon_guard_var.set(self._to_bool(cfg.get("beacon_guard_enabled", self.beacon_guard_var.get())))
+        self.beacon_guard_block_var.set(self._to_bool(cfg.get("beacon_guard_block", self.beacon_guard_block_var.get())))
 
     def _load_state(self):
         if not self.state_file.exists():
@@ -1533,6 +1633,12 @@ class EtheriusApp:
             "deep_scan_on_start": bool(self.deep_scan_on_start_var.get()),
             "email_risk_alert": bool(self.email_risk_alert_var.get()),
             "web_control_enforce": bool(self.web_control_enforce_var.get()),
+            "download_shield_enabled": bool(self.download_shield_var.get()),
+            "download_shield_quarantine": bool(self.download_shield_quarantine_var.get()),
+            "exploit_guard_enabled": bool(self.exploit_guard_var.get()),
+            "exploit_guard_auto_kill": bool(self.exploit_guard_auto_kill_var.get()),
+            "beacon_guard_enabled": bool(self.beacon_guard_var.get()),
+            "beacon_guard_block": bool(self.beacon_guard_block_var.get()),
         }
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")

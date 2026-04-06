@@ -12,7 +12,16 @@ DEFAULT_CONFIG = {
     "endpoint_id": "PASTE_YOUR_ENDPOINT_ID_HERE",
     "heartbeat_interval": 30,
     "event_batch_interval": 10,
-    "version": "1.0.0",
+    "policy_mode": "advisory",
+    "ai_profile": "balanced",
+    "ai_sensitivity": 70,
+    "download_shield_enabled": True,
+    "download_shield_quarantine": True,
+    "exploit_guard_enabled": True,
+    "exploit_guard_auto_kill": True,
+    "beacon_guard_enabled": True,
+    "beacon_guard_block": False,
+    "version": "1.1.0",
 }
 
 

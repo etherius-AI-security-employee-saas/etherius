@@ -104,6 +104,23 @@ def _event_hard_override(event_type: str, payload: Dict[str, Any], flags: List[s
             return DECISION_AUTO_BLOCK, 82, "Blacklisted application was executed and terminated"
         return DECISION_ALERT, 66, "Blacklisted application execution attempt detected"
 
+    if event_type == "process":
+        if action == "exploit_chain_blocked":
+            return DECISION_AUTO_BLOCK, 84, "Exploit chain blocked at endpoint runtime"
+        if action == "exploit_chain_detected":
+            return DECISION_ALERT, 70, "Exploit chain behavior detected from user application"
+
+    if event_type == "file":
+        if action == "quarantine":
+            return DECISION_AUTO_BLOCK, 84, "Suspicious file quarantined before execution"
+        if action == "suspicious_download_detected":
+            return DECISION_ALERT, 64, "Suspicious download detected"
+
+    if event_type == "network" and action == "beacon_pattern_detected":
+        if bool(payload.get("local_blocked", False)):
+            return DECISION_AUTO_BLOCK, 82, "Beaconing endpoint traffic detected and locally blocked"
+        return DECISION_AUTO_BLOCK, 74, "Beaconing endpoint traffic detected"
+
     if event_type == "web" and bool(payload.get("blocked", False)):
         if category in {"adult", "gambling"}:
             return DECISION_ALERT, 60, "Blocked high-risk website category visited"

@@ -25,12 +25,17 @@ def analyze_process(payload: Dict) -> Dict:
     score, flags = 0, []
     name = str(payload.get("process_name","")).lower()
     cmd = str(payload.get("cmd_line","")).lower()
+    action = str(payload.get("action", "")).lower()
     for bad in SUSPICIOUS_PROCESSES:
         if bad in name or bad in cmd:
             score += 85; flags.append(f"Malicious process: {bad}"); break
     if "powershell" in name:
         if any(x in cmd for x in ["-enc","-encodedcommand","downloadstring","iex","invoke-expression"]):
             score += 70; flags.append("Encoded/download PowerShell detected")
+    if action == "exploit_chain_blocked":
+        score += 90; flags.append("Office/browser exploit chain blocked")
+    elif action == "exploit_chain_detected":
+        score += 72; flags.append("Office/browser exploit chain detected")
     if payload.get("elevated") and payload.get("parent","") not in ["services.exe","svchost.exe"]:
         score += 40; flags.append("Unexpected privilege escalation")
     return {"score": min(score,100), "flags": flags}
@@ -39,6 +44,7 @@ def analyze_network(payload: Dict) -> Dict:
     score, flags = 0, []
     port = int(payload.get("dest_port",0))
     sent = int(payload.get("bytes_sent",0))
+    action = str(payload.get("action", "")).lower()
     if port in SUSPICIOUS_PORTS:
         score += 90; flags.append(f"Connection to C2 port {port}")
     if sent > 50_000_000:
@@ -47,6 +53,10 @@ def analyze_network(payload: Dict) -> Dict:
         score += 55; flags.append("Network scanning detected")
     if int(payload.get("dns_query_length",0)) > 100:
         score += 60; flags.append("DNS tunneling suspected")
+    if action == "beacon_pattern_detected":
+        score += 70; flags.append("Beaconing/exfiltration pattern detected")
+        if bool(payload.get("local_blocked", False)):
+            score += 15; flags.append("Outbound beacon IP locally blocked")
     return {"score": min(score,100), "flags": flags}
 
 def analyze_login(payload: Dict) -> Dict:
@@ -70,6 +80,13 @@ def analyze_file(payload: Dict) -> Dict:
         score += 95; flags.append(f"RANSOMWARE INDICATOR: {count} files {action}d")
     if path.endswith((".exe",".bat",".ps1",".vbs")) and action == "create":
         score += 55; flags.append(f"Executable file created: {path}")
+    if action == "quarantine":
+        score += 82; flags.append("Suspicious download quarantined before execution")
+    elif action == "suspicious_download_detected":
+        score += 60; flags.append("Suspicious download detected in user space")
+    reason = str(payload.get("reason", "")).lower()
+    if reason and "double-extension" in reason:
+        score += 20; flags.append("Masquerading double-extension file pattern")
     return {"score": min(score,100), "flags": flags}
 
 def analyze_email(payload: Dict) -> Dict:

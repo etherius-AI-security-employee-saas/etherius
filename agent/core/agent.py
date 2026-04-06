@@ -6,7 +6,10 @@ import time
 from datetime import datetime
 
 from agent.collectors.app_control_monitor import AppControlMonitor
+from agent.collectors.beacon_guard_monitor import BeaconGuardMonitor
 from agent.collectors.dlp_monitor import DlpMonitor
+from agent.collectors.download_shield_monitor import DownloadShieldMonitor
+from agent.collectors.exploit_guard_monitor import ExploitGuardMonitor
 from agent.collectors.file_monitor import FileMonitor
 from agent.collectors.login_monitor import LoginMonitor
 from agent.collectors.network_monitor import NetworkMonitor
@@ -46,6 +49,9 @@ class EtheriusAgent:
             WebControlMonitor(event_queue),
             DlpMonitor(event_queue),
             VulnerabilityMonitor(event_queue),
+            DownloadShieldMonitor(event_queue),
+            ExploitGuardMonitor(event_queue),
+            BeaconGuardMonitor(event_queue),
         ]
 
     def _emit_status(self):

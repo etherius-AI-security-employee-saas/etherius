@@ -1,5 +1,5 @@
 #define MyAppName "Etherius Security Suite"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Etherius"
 #define MyAppExeName "EtheriusSuite.exe"
 #define MyAppURL "https://etherius-security-site.vercel.app"
