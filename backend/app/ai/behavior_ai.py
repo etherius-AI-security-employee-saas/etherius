@@ -132,11 +132,16 @@ def analyze_usb(payload: Dict) -> Dict:
     known = bool(payload.get("is_whitelisted", False))
     action = str(payload.get("action", "")).lower()
     if action == "plugged" and not known:
-        score += 65
+        score += 75
         flags.append("Unknown USB device inserted")
     if action == "blocked":
-        score += 75
+        score += 85
         flags.append("USB blocked by policy")
+    if action == "removed":
+        score += 5
+    if str(payload.get("vendor", "")).strip().lower() in {"", "unknown"} and action in {"plugged", "blocked"}:
+        score += 10
+        flags.append("USB vendor identity unavailable")
     if device_id and any(tag in device_id.lower() for tag in ["vid_", "pid_"]):
         score += 10
     return {"score": min(score, 100), "flags": flags}
@@ -148,6 +153,8 @@ def analyze_dlp(payload: Dict) -> Dict:
     score, flags = 0, []
     content = str(payload.get("content_sample", "")).lower()
     bytes_copied = int(payload.get("bytes_copied", 0) or 0)
+    pattern_type = str(payload.get("pattern_type", "")).strip().lower()
+    explicit_matches = int(payload.get("matches", 0) or 0)
     if bytes_copied > 100_000_000:
         score += 80
         flags.append("Mass copy to external media/cloud")
@@ -162,13 +169,23 @@ def analyze_dlp(payload: Dict) -> Dict:
                 matched.append(name)
         except re.error:
             continue
+    if pattern_type:
+        for item in [x.strip() for x in pattern_type.split(",") if x.strip()]:
+            if item not in matched:
+                matched.append(item)
     if matched:
         score += min(20 * len(matched), 60)
         flags.append(f"Sensitive pattern(s) detected: {', '.join(matched)}")
+    if explicit_matches > 0:
+        score += min(explicit_matches * 8, 35)
+        flags.append(f"Sensitive data match count elevated: {explicit_matches}")
 
     if str(payload.get("target", "")).lower() in {"dropbox", "gdrive", "googledrive", "onedrive-personal"}:
         score += 25
         flags.append("Upload to external cloud storage")
+    if str(payload.get("target", "")).lower() in {"external_drive", "usb", "removable_media"}:
+        score += 20
+        flags.append("Sensitive copy to removable media")
 
     return {"score": min(score, 100), "flags": flags}
 
@@ -201,6 +218,29 @@ def analyze_vulnerability(payload: Dict) -> Dict:
         flags.append(f"High vulnerabilities found: {high}")
     return {"score": min(score, 100), "flags": flags}
 
+
+def analyze_app_blacklist(payload: Dict) -> Dict:
+    score, flags = 0, []
+    app_name = str(payload.get("process_name", "")).strip().lower()
+    blacklist_match = str(payload.get("blacklist_match", app_name)).strip().lower()
+    action = str(payload.get("action", "alert")).strip().lower()
+    killed = bool(payload.get("killed", False))
+    username = str(payload.get("username", "")).strip()
+
+    if action == "kill" and killed:
+        score += 92
+        flags.append(f"Blacklisted application terminated: {blacklist_match or app_name}")
+    elif action == "kill":
+        score += 72
+        flags.append(f"Blacklisted application detected (termination pending/failed): {blacklist_match or app_name}")
+    else:
+        score += 58
+        flags.append(f"Blacklisted application detected: {blacklist_match or app_name}")
+
+    if username:
+        flags.append(f"Execution attempted by user: {username}")
+    return {"score": min(score, 100), "flags": flags}
+
 def analyze_event(event_type: str, payload: Dict) -> Dict:
     fn = {
         "process": analyze_process,
@@ -216,7 +256,7 @@ def analyze_event(event_type: str, payload: Dict) -> Dict:
         "dlp": analyze_dlp,
         "web": analyze_web,
         "vulnerability": analyze_vulnerability,
-        "app_blacklist": analyze_process,
+        "app_blacklist": analyze_app_blacklist,
     }
     result = fn.get(event_type, lambda p: {"score":0,"flags":[]})(payload)
     result["category"] = event_type
