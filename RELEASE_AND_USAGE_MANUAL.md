@@ -6,7 +6,7 @@ This is the required release rule for every new feature:
 2. Run validation (`python -m compileall`, dashboard build, smoke tests).
 3. Build latest setup (`Etherius-Setup.exe`).
 4. Replace public download binary in `website/downloads/`.
-5. Deploy backend + dashboard + website.
+5. Deploy backend + website (manager dashboard is inside software).
 6. Push commit to GitHub.
 7. Publish short manual update for CEO, Customer Admin, Employee.
 
@@ -16,7 +16,7 @@ If one step is missing, the feature is **not considered released**.
 
 - Site: https://etherius-security-site.vercel.app
 - API: https://etherius-security-api.vercel.app
-- Dashboard: https://etherius-security-dashboard.vercel.app
+- Manager dashboard: inside Etherius software only (no public web dashboard)
 
 ## Roles and Access
 
@@ -53,4 +53,3 @@ If one step is missing, the feature is **not considered released**.
 7. Production deploy completed:
 8. GitHub commit hash:
 9. Manual usage notes:
-

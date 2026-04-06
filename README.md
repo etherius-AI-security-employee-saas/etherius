@@ -36,6 +36,7 @@ Etherius is an enterprise-grade cyber defense platform built for organizations t
    Provider-only control console for subscription issuance and customer fleet oversight.
 4. `website/`
    Premium public distribution site that ships setup-only delivery.
+   Public site does not expose manager dashboard URLs.
 5. `installer/`
    Setup build pipeline for production deployment.
 
