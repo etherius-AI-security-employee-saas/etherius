@@ -2,6 +2,8 @@ import queue
 import threading
 import time
 
+from agent.core.adaptive_guard import is_process_allowlisted, should_enforce_action
+from agent.core.config import get_config
 from agent.core.policy import get_policy_snapshot
 
 
@@ -12,6 +14,7 @@ class AppControlMonitor:
         self._seen = {}
 
     def _collect(self):
+        cfg = get_config()
         policy = get_policy_snapshot()
         entries = policy.get("app_blacklist", []) or []
         if not entries:
@@ -31,12 +34,20 @@ class AppControlMonitor:
                 name = str(info.get("name", "")).lower()
                 if not name:
                     continue
+                if is_process_allowlisted(name, cfg):
+                    continue
                 matched_key = None
                 matched_action = None
+                match_score = 0
                 for app_name, action in rule_map.items():
-                    if app_name and app_name in name:
+                    if not app_name:
+                        continue
+                    exact = name == app_name or name == f"{app_name}.exe" or app_name == f"{name}.exe"
+                    partial = len(app_name) >= 5 and app_name in name
+                    if exact or partial:
                         matched_key = app_name
                         matched_action = action
+                        match_score = 92 if exact else 78
                         break
                 if not matched_key:
                     continue
@@ -46,17 +57,27 @@ class AppControlMonitor:
                     continue
 
                 killed = False
+                enforcement_deferred = False
                 if matched_action == "kill":
-                    try:
-                        proc.kill()
-                        killed = True
-                    except Exception:
-                        killed = False
+                    should_kill = should_enforce_action(
+                        cfg,
+                        action_kind="terminate_process",
+                        signal_score=match_score,
+                        critical=match_score >= 90,
+                    )
+                    if should_kill:
+                        try:
+                            proc.kill()
+                            killed = True
+                        except Exception:
+                            killed = False
+                    else:
+                        enforcement_deferred = True
 
                 self.q.put(
                     {
                         "event_type": "app_blacklist",
-                        "severity": "high" if killed else "medium",
+                        "severity": "high" if killed else ("medium" if match_score >= 80 else "low"),
                         "payload": {
                             "pid": pid,
                             "process_name": name,
@@ -64,6 +85,8 @@ class AppControlMonitor:
                             "blacklist_match": matched_key,
                             "action": matched_action,
                             "killed": killed,
+                            "enforcement_deferred": enforcement_deferred,
+                            "detection_score": match_score,
                         },
                     }
                 )

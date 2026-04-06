@@ -10,11 +10,36 @@
   "policy_mode": "advisory",
   "ai_profile": "balanced",
   "ai_sensitivity": 70,
+  "non_disruptive_mode": true,
+  "enforcement_threshold": 84,
+  "block_during_business_hours": false,
+  "business_hours_start": "08:00",
+  "business_hours_end": "20:00",
+  "trusted_processes": [
+    "outlook.exe",
+    "teams.exe",
+    "slack.exe",
+    "zoom.exe",
+    "chrome.exe",
+    "msedge.exe",
+    "firefox.exe",
+    "code.exe"
+  ],
+  "trusted_domains": [
+    "microsoft.com",
+    "office.com",
+    "google.com",
+    "github.com",
+    "zoom.us",
+    "slack.com"
+  ],
+  "trusted_download_patterns": [],
+  "web_control_enforce": false,
   "download_shield_enabled": true,
   "download_shield_quarantine": true,
   "exploit_guard_enabled": true,
   "exploit_guard_auto_kill": true,
   "beacon_guard_enabled": true,
   "beacon_guard_block": false,
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

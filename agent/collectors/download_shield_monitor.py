@@ -7,6 +7,7 @@ import threading
 import time
 from pathlib import Path
 
+from agent.core.adaptive_guard import is_path_allowlisted, should_enforce_action
 from agent.core.config import get_config
 
 
@@ -80,18 +81,18 @@ class DownloadShieldMonitor:
         suffixes = [s.lower() for s in path.suffixes]
         final_ext = suffixes[-1] if suffixes else ""
         if final_ext in SUSPICIOUS_EXTENSIONS:
-            return True, f"High-risk executable/script extension detected ({final_ext})"
+            return True, f"High-risk executable/script extension detected ({final_ext})", 82
 
         if len(suffixes) >= 2:
             first = suffixes[-2]
             second = suffixes[-1]
             if first in DOC_EXTENSIONS and second in SUSPICIOUS_EXTENSIONS:
-                return True, "Double-extension masquerading file detected"
+                return True, "Double-extension masquerading file detected", 94
 
         if final_ext in {".zip", ".rar", ".7z"} and any(token in name for token in SUSPICIOUS_NAME_TOKENS):
-            return True, "Suspicious archive naming pattern detected"
+            return True, "Suspicious archive naming pattern detected", 72
 
-        return False, ""
+        return False, "", 0
 
     def _quarantine_dir(self):
         if os.name == "nt":
@@ -140,8 +141,10 @@ class DownloadShieldMonitor:
             self._seen.add(key)
 
             file_path = Path(path_text)
-            suspicious, reason = self._is_suspicious_download(file_path)
+            suspicious, reason, detection_score = self._is_suspicious_download(file_path)
             if not suspicious:
+                continue
+            if is_path_allowlisted(str(file_path), cfg):
                 continue
 
             sha256 = ""
@@ -153,7 +156,18 @@ class DownloadShieldMonitor:
             quarantined = False
             quarantine_path = ""
             action = "suspicious_download_detected"
-            if quarantine_enabled and policy_mode in {"balanced", "strict"}:
+            enforcement_deferred = False
+            should_quarantine = (
+                quarantine_enabled
+                and policy_mode in {"balanced", "strict"}
+                and should_enforce_action(
+                    cfg,
+                    action_kind="quarantine_file",
+                    signal_score=detection_score,
+                    critical=detection_score >= 92,
+                )
+            )
+            if should_quarantine:
                 try:
                     moved = self._quarantine(file_path)
                     quarantined = True
@@ -161,11 +175,13 @@ class DownloadShieldMonitor:
                     action = "quarantine"
                 except Exception:
                     quarantined = False
+            elif quarantine_enabled and policy_mode in {"balanced", "strict"}:
+                enforcement_deferred = True
 
             self.q.put(
                 {
                     "event_type": "file",
-                    "severity": "high" if quarantined else "medium",
+                    "severity": "high" if quarantined else ("medium" if detection_score >= 80 else "low"),
                     "payload": {
                         "directory": str(root),
                         "action": action,
@@ -177,6 +193,8 @@ class DownloadShieldMonitor:
                         "file_size": int(meta[1]),
                         "quarantined": quarantined,
                         "quarantine_path": quarantine_path,
+                        "detection_score": detection_score,
+                        "enforcement_deferred": enforcement_deferred,
                     },
                 }
             )

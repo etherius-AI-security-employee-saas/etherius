@@ -120,10 +120,21 @@ class EtheriusApp:
         self.live_sync_interval_var = tk.StringVar(value=str(self.state.get("live_sync_interval", "20")))
         self.sound_alert_var = tk.BooleanVar(value=self._to_bool(self.state.get("sound_alert", True)))
         self.ai_profile_var = tk.StringVar(value=str(self.state.get("ai_profile", "balanced")))
+        self.non_disruptive_mode_var = tk.BooleanVar(value=self._to_bool(self.state.get("non_disruptive_mode", True)))
+        self.enforcement_threshold_var = tk.IntVar(
+            value=self._safe_int(self.state.get("enforcement_threshold", 84), 84)
+        )
+        self.block_during_business_hours_var = tk.BooleanVar(
+            value=self._to_bool(self.state.get("block_during_business_hours", False))
+        )
+        self.business_hours_start_var = tk.StringVar(value=str(self.state.get("business_hours_start", "08:00")))
+        self.business_hours_end_var = tk.StringVar(value=str(self.state.get("business_hours_end", "20:00")))
+        self.trusted_processes_var = tk.StringVar(value=str(self.state.get("trusted_processes", "")))
+        self.trusted_domains_var = tk.StringVar(value=str(self.state.get("trusted_domains", "")))
         self.auto_start_on_launch_var = tk.BooleanVar(value=self._to_bool(self.state.get("auto_start_on_launch", False)))
         self.deep_scan_on_start_var = tk.BooleanVar(value=self._to_bool(self.state.get("deep_scan_on_start", True)))
         self.email_risk_alert_var = tk.BooleanVar(value=self._to_bool(self.state.get("email_risk_alert", True)))
-        self.web_control_enforce_var = tk.BooleanVar(value=self._to_bool(self.state.get("web_control_enforce", True)))
+        self.web_control_enforce_var = tk.BooleanVar(value=self._to_bool(self.state.get("web_control_enforce", False)))
         self.download_shield_var = tk.BooleanVar(value=self._to_bool(self.state.get("download_shield_enabled", True)))
         self.download_shield_quarantine_var = tk.BooleanVar(value=self._to_bool(self.state.get("download_shield_quarantine", True)))
         self.exploit_guard_var = tk.BooleanVar(value=self._to_bool(self.state.get("exploit_guard_enabled", True)))
@@ -620,6 +631,21 @@ class EtheriusApp:
             highlightthickness=0,
         ).pack(fill="x")
 
+        threshold_row = tk.Frame(left, bg="#141f3d")
+        threshold_row.pack(fill="x", padx=12, pady=(6, 6))
+        tk.Label(threshold_row, text="Auto-Enforcement Threshold (safe default 84)", bg="#141f3d", fg="#a5b4d8").pack(anchor="w")
+        tk.Scale(
+            threshold_row,
+            from_=50,
+            to=95,
+            orient="horizontal",
+            variable=self.enforcement_threshold_var,
+            bg="#141f3d",
+            fg="#edf2ff",
+            troughcolor="#294072",
+            highlightthickness=0,
+        ).pack(fill="x")
+
         auto_row = tk.Frame(left, bg="#141f3d")
         auto_row.pack(fill="x", padx=12, pady=(6, 6))
         self._labeled_entry(auto_row, "Auto Scan Interval (minutes)", self.auto_scan_interval_var, width=20).pack(fill="x")
@@ -630,6 +656,26 @@ class EtheriusApp:
 
         notify_row = tk.Frame(left, bg="#141f3d")
         notify_row.pack(fill="x", padx=12, pady=(6, 6))
+        tk.Checkbutton(
+            notify_row,
+            text="Non-disruptive mode (detect first, enforce only at high confidence)",
+            variable=self.non_disruptive_mode_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            notify_row,
+            text="Allow enforcement during business hours",
+            variable=self.block_during_business_hours_var,
+            bg="#141f3d",
+            fg="#dfe8ff",
+            activebackground="#141f3d",
+            activeforeground="#dfe8ff",
+            selectcolor="#20305a",
+        ).pack(anchor="w")
         tk.Checkbutton(
             notify_row,
             text="Send scan intelligence to manager dashboard",
@@ -670,6 +716,24 @@ class EtheriusApp:
             activeforeground="#dfe8ff",
             selectcolor="#20305a",
         ).pack(anchor="w")
+        self._labeled_entry(notify_row, "Business hours start (HH:MM)", self.business_hours_start_var, width=16).pack(
+            fill="x", pady=(6, 0)
+        )
+        self._labeled_entry(notify_row, "Business hours end (HH:MM)", self.business_hours_end_var, width=16).pack(
+            fill="x", pady=(6, 0)
+        )
+        self._labeled_entry(
+            notify_row,
+            "Trusted processes (comma-separated executable names)",
+            self.trusted_processes_var,
+            width=64,
+        ).pack(fill="x", pady=(6, 0))
+        self._labeled_entry(
+            notify_row,
+            "Trusted domains (comma-separated domains)",
+            self.trusted_domains_var,
+            width=64,
+        ).pack(fill="x", pady=(6, 0))
         tk.Checkbutton(
             notify_row,
             text="Auto-start protection on launch (if activation exists)",
@@ -773,10 +837,13 @@ class EtheriusApp:
             "- Exploit Guard for office/browser process-chain attacks",
             "- Beacon Guard for persistent C2/exfiltration traffic patterns",
             "- Local quick/deep risk scanning with decision-aware escalation",
+            "- Adaptive non-disruptive enforcement guard with confidence thresholding",
+            "- Trusted business app/domain allowlists to avoid workflow interruption",
             "",
             "Safety principle:",
             "- Advisory-first: critical business tools are allowlisted and not auto-blocked by default.",
             "- Strict mode increases detection sensitivity and response recommendations.",
+            "- Non-disruptive mode keeps protection strong while reducing accidental workflow stops.",
         ]
         for line in info_lines:
             tk.Label(right, text=line, bg="#141f3d", fg="#dfe8ff", anchor="w", justify="left").pack(fill="x", padx=12, pady=(8, 0))
@@ -793,12 +860,29 @@ class EtheriusApp:
         except Exception:
             return default
 
+    def _valid_hhmm(self, value):
+        text = str(value or "").strip()
+        try:
+            hh, mm = text.split(":")
+            hh_i = int(hh)
+            mm_i = int(mm)
+            return 0 <= hh_i <= 23 and 0 <= mm_i <= 59
+        except Exception:
+            return False
+
     def _to_bool(self, value):
         if isinstance(value, bool):
             return value
         return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
+    def _csv_string(self, value):
+        if isinstance(value, (list, tuple, set)):
+            return ", ".join([str(v).strip() for v in value if str(v).strip()])
+        return str(value or "")
+
     def _sync_agent_runtime_config(self):
+        trusted_processes = [x.strip() for x in self.trusted_processes_var.get().replace(";", ",").split(",") if x.strip()]
+        trusted_domains = [x.strip() for x in self.trusted_domains_var.get().replace(";", ",").split(",") if x.strip()]
         payload = {
             "backend_url": self.backend_url_var.get().strip(),
             "company_code": self.employee_company_code_var.get().strip(),
@@ -809,6 +893,14 @@ class EtheriusApp:
             "policy_mode": self.policy_mode_var.get().strip(),
             "ai_profile": self.ai_profile_var.get().strip(),
             "ai_sensitivity": int(self.ai_sensitivity_var.get() or 70),
+            "non_disruptive_mode": bool(self.non_disruptive_mode_var.get()),
+            "enforcement_threshold": int(self.enforcement_threshold_var.get() or 84),
+            "block_during_business_hours": bool(self.block_during_business_hours_var.get()),
+            "business_hours_start": self.business_hours_start_var.get().strip() or "08:00",
+            "business_hours_end": self.business_hours_end_var.get().strip() or "20:00",
+            "trusted_processes": trusted_processes,
+            "trusted_domains": trusted_domains,
+            "web_control_enforce": bool(self.web_control_enforce_var.get()),
             "download_shield_enabled": bool(self.download_shield_var.get()),
             "download_shield_quarantine": bool(self.download_shield_quarantine_var.get()),
             "exploit_guard_enabled": bool(self.exploit_guard_var.get()),
@@ -1339,13 +1431,19 @@ class EtheriusApp:
         if not live_sync.isdigit() or int(live_sync) <= 0:
             messagebox.showerror("Invalid settings", "Live manager sync must be a positive number of seconds.")
             return
+        if not self._valid_hhmm(self.business_hours_start_var.get().strip()):
+            messagebox.showerror("Invalid settings", "Business hours start must be HH:MM (24h format).")
+            return
+        if not self._valid_hhmm(self.business_hours_end_var.get().strip()):
+            messagebox.showerror("Invalid settings", "Business hours end must be HH:MM (24h format).")
+            return
         self._save_state()
         self._sync_agent_runtime_config()
         self.alert_mode_var.set(
             f"Alert mode: {self.policy_mode_var.get().strip()}/{self.ai_profile_var.get().strip()}"
         )
         self._append_feed(
-            f"Security settings saved: mode={self.policy_mode_var.get()}, profile={self.ai_profile_var.get()}, sensitivity={self.ai_sensitivity_var.get()}, interval={interval}m, shields(download/exploit/beacon)={int(self.download_shield_var.get())}/{int(self.exploit_guard_var.get())}/{int(self.beacon_guard_var.get())}."
+            f"Security settings saved: mode={self.policy_mode_var.get()}, profile={self.ai_profile_var.get()}, sensitivity={self.ai_sensitivity_var.get()}, threshold={self.enforcement_threshold_var.get()}, non_disruptive={int(self.non_disruptive_mode_var.get())}, interval={interval}m, shields(download/exploit/beacon)={int(self.download_shield_var.get())}/{int(self.exploit_guard_var.get())}/{int(self.beacon_guard_var.get())}."
         )
         if self.agent.running:
             self._schedule_auto_scan(initial_delay_seconds=10)
@@ -1591,6 +1689,20 @@ class EtheriusApp:
         self.policy_mode_var.set(str(cfg.get("policy_mode", self.policy_mode_var.get())))
         self.ai_profile_var.set(str(cfg.get("ai_profile", self.ai_profile_var.get())))
         self.ai_sensitivity_var.set(self._safe_int(cfg.get("ai_sensitivity", self.ai_sensitivity_var.get()), 70))
+        self.non_disruptive_mode_var.set(
+            self._to_bool(cfg.get("non_disruptive_mode", self.non_disruptive_mode_var.get()))
+        )
+        self.enforcement_threshold_var.set(
+            self._safe_int(cfg.get("enforcement_threshold", self.enforcement_threshold_var.get()), 84)
+        )
+        self.block_during_business_hours_var.set(
+            self._to_bool(cfg.get("block_during_business_hours", self.block_during_business_hours_var.get()))
+        )
+        self.business_hours_start_var.set(str(cfg.get("business_hours_start", self.business_hours_start_var.get())))
+        self.business_hours_end_var.set(str(cfg.get("business_hours_end", self.business_hours_end_var.get())))
+        self.trusted_processes_var.set(self._csv_string(cfg.get("trusted_processes", self.trusted_processes_var.get())))
+        self.trusted_domains_var.set(self._csv_string(cfg.get("trusted_domains", self.trusted_domains_var.get())))
+        self.web_control_enforce_var.set(self._to_bool(cfg.get("web_control_enforce", self.web_control_enforce_var.get())))
         self.download_shield_var.set(self._to_bool(cfg.get("download_shield_enabled", self.download_shield_var.get())))
         self.download_shield_quarantine_var.set(
             self._to_bool(cfg.get("download_shield_quarantine", self.download_shield_quarantine_var.get()))
@@ -1629,6 +1741,13 @@ class EtheriusApp:
             "live_sync_interval": self.live_sync_interval_var.get().strip(),
             "sound_alert": bool(self.sound_alert_var.get()),
             "ai_profile": self.ai_profile_var.get().strip(),
+            "non_disruptive_mode": bool(self.non_disruptive_mode_var.get()),
+            "enforcement_threshold": self.enforcement_threshold_var.get(),
+            "block_during_business_hours": bool(self.block_during_business_hours_var.get()),
+            "business_hours_start": self.business_hours_start_var.get().strip(),
+            "business_hours_end": self.business_hours_end_var.get().strip(),
+            "trusted_processes": self.trusted_processes_var.get().strip(),
+            "trusted_domains": self.trusted_domains_var.get().strip(),
             "auto_start_on_launch": bool(self.auto_start_on_launch_var.get()),
             "deep_scan_on_start": bool(self.deep_scan_on_start_var.get()),
             "email_risk_alert": bool(self.email_risk_alert_var.get()),

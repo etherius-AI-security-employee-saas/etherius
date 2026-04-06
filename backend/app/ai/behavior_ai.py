@@ -36,6 +36,9 @@ def analyze_process(payload: Dict) -> Dict:
         score += 90; flags.append("Office/browser exploit chain blocked")
     elif action == "exploit_chain_detected":
         score += 72; flags.append("Office/browser exploit chain detected")
+        if bool(payload.get("enforcement_deferred", False)):
+            score = max(score - 12, 0)
+            flags.append("Enforcement deferred by non-disruptive policy")
     if payload.get("elevated") and payload.get("parent","") not in ["services.exe","svchost.exe"]:
         score += 40; flags.append("Unexpected privilege escalation")
     return {"score": min(score,100), "flags": flags}
@@ -84,6 +87,9 @@ def analyze_file(payload: Dict) -> Dict:
         score += 82; flags.append("Suspicious download quarantined before execution")
     elif action == "suspicious_download_detected":
         score += 60; flags.append("Suspicious download detected in user space")
+        if bool(payload.get("enforcement_deferred", False)):
+            score = max(score - 10, 0)
+            flags.append("Quarantine deferred by non-disruptive policy")
     reason = str(payload.get("reason", "")).lower()
     if reason and "double-extension" in reason:
         score += 20; flags.append("Masquerading double-extension file pattern")
@@ -215,6 +221,9 @@ def analyze_web(payload: Dict) -> Dict:
     if blocked:
         score += 55
         flags.append(f"Blocked website access attempt: {domain}")
+    elif str(payload.get("action", "")).lower() == "policy_violation_detected":
+        score += 36
+        flags.append(f"Website policy violation detected (monitor mode): {domain}")
     if category in {"adult", "gambling"}:
         score += 25
         flags.append(f"Policy-sensitive category visited: {category}")
@@ -250,6 +259,9 @@ def analyze_app_blacklist(payload: Dict) -> Dict:
     elif action == "kill":
         score += 72
         flags.append(f"Blacklisted application detected (termination pending/failed): {blacklist_match or app_name}")
+        if bool(payload.get("enforcement_deferred", False)):
+            score = max(score - 14, 0)
+            flags.append("Termination deferred by non-disruptive policy")
     else:
         score += 58
         flags.append(f"Blacklisted application detected: {blacklist_match or app_name}")

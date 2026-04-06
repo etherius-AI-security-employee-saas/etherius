@@ -82,6 +82,11 @@ def _event_hard_override(event_type: str, payload: Dict[str, Any], flags: List[s
     pattern_type = str(payload.get("pattern_type", "")).lower()
     category = str(payload.get("category", "")).lower()
     action = str(payload.get("action", "")).lower()
+    enforcement_deferred = bool(payload.get("enforcement_deferred", False))
+    allowlisted = bool(payload.get("allowlisted", False))
+
+    if allowlisted:
+        return DECISION_MONITOR, 12, "Event matched local business-safe allowlist"
 
     if event_type == "dlp":
         bytes_copied = int(float(payload.get("bytes_copied", 0) or 0))
@@ -100,31 +105,42 @@ def _event_hard_override(event_type: str, payload: Dict[str, Any], flags: List[s
             return DECISION_ALERT, 62, "Unknown USB device inserted"
 
     if event_type == "app_blacklist":
+        if enforcement_deferred:
+            return DECISION_ALERT, 58, "Blacklisted app detected; enforcement deferred by non-disruptive policy"
         if bool(payload.get("killed", False)):
             return DECISION_AUTO_BLOCK, 82, "Blacklisted application was executed and terminated"
         return DECISION_ALERT, 66, "Blacklisted application execution attempt detected"
 
     if event_type == "process":
+        if action == "exploit_chain_detected" and enforcement_deferred:
+            return DECISION_ALERT, 62, "Exploit-chain behavior detected; blocked action deferred by safety policy"
         if action == "exploit_chain_blocked":
             return DECISION_AUTO_BLOCK, 84, "Exploit chain blocked at endpoint runtime"
         if action == "exploit_chain_detected":
             return DECISION_ALERT, 70, "Exploit chain behavior detected from user application"
 
     if event_type == "file":
+        if action == "suspicious_download_detected" and enforcement_deferred:
+            return DECISION_ALERT, 56, "Suspicious download detected; quarantine deferred by safety policy"
         if action == "quarantine":
             return DECISION_AUTO_BLOCK, 84, "Suspicious file quarantined before execution"
         if action == "suspicious_download_detected":
             return DECISION_ALERT, 64, "Suspicious download detected"
 
     if event_type == "network" and action == "beacon_pattern_detected":
+        if enforcement_deferred:
+            return DECISION_ALERT, 60, "Beaconing traffic detected; local block deferred pending confidence threshold"
         if bool(payload.get("local_blocked", False)):
             return DECISION_AUTO_BLOCK, 82, "Beaconing endpoint traffic detected and locally blocked"
         return DECISION_AUTO_BLOCK, 74, "Beaconing endpoint traffic detected"
 
-    if event_type == "web" and bool(payload.get("blocked", False)):
-        if category in {"adult", "gambling"}:
-            return DECISION_ALERT, 60, "Blocked high-risk website category visited"
-        return DECISION_ALERT, 50, "Blocked website policy violation detected"
+    if event_type == "web":
+        if bool(payload.get("blocked", False)):
+            if category in {"adult", "gambling"}:
+                return DECISION_ALERT, 60, "Blocked high-risk website category visited"
+            return DECISION_ALERT, 50, "Blocked website policy violation detected"
+        if action == "policy_violation_detected":
+            return DECISION_ALERT, 42, "Website policy violation detected in monitor-only mode"
 
     if event_type == "vulnerability":
         critical_count = _bounded_score(payload.get("critical_count", 0))

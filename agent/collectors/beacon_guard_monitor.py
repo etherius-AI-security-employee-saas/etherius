@@ -7,6 +7,7 @@ import threading
 import time
 from collections import defaultdict, deque
 
+from agent.core.adaptive_guard import compute_connection_threshold, should_enforce_action
 from agent.core.config import get_config
 
 
@@ -65,6 +66,7 @@ class BeaconGuardMonitor:
 
         policy_mode = str(cfg.get("policy_mode", "advisory")).strip().lower()
         block_on_detect = _safe_bool(cfg.get("beacon_guard_block", False), False) and policy_mode == "strict"
+        detection_threshold = compute_connection_threshold(cfg, base=14)
         now = time.time()
 
         try:
@@ -99,7 +101,7 @@ class BeaconGuardMonitor:
                 hits.popleft()
 
             window_count = len(hits) + count
-            if window_count < 14:
+            if window_count < detection_threshold:
                 continue
 
             alert_until = self._alerted_until.get(dest_ip, 0)
@@ -114,23 +116,37 @@ class BeaconGuardMonitor:
                     top_port = port
                     top_port_count = pc
 
+            detection_score = min(100, 52 + window_count * 2)
             local_blocked = False
+            enforcement_deferred = False
             if block_on_detect:
-                local_blocked = self._block_ip_locally(dest_ip)
+                should_block = should_enforce_action(
+                    cfg,
+                    action_kind="network_block",
+                    signal_score=detection_score,
+                    critical=window_count >= 28,
+                )
+                if should_block:
+                    local_blocked = self._block_ip_locally(dest_ip)
+                else:
+                    enforcement_deferred = True
 
             io = psutil.net_io_counters()
             self.q.put(
                 {
                     "event_type": "network",
-                    "severity": "high",
+                    "severity": "high" if local_blocked else ("medium" if detection_score >= 70 else "low"),
                     "payload": {
                         "dest_ip": dest_ip,
                         "dest_port": top_port,
                         "connection_count": window_count,
+                        "detection_threshold": detection_threshold,
+                        "detection_score": detection_score,
                         "bytes_sent": int(getattr(io, "bytes_sent", 0) or 0),
                         "bytes_recv": int(getattr(io, "bytes_recv", 0) or 0),
                         "action": "beacon_pattern_detected",
                         "local_blocked": local_blocked,
+                        "enforcement_deferred": enforcement_deferred,
                         "platform": platform.system(),
                     },
                 }

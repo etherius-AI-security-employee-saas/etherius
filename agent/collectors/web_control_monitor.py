@@ -7,7 +7,17 @@ import threading
 import time
 from datetime import datetime, timedelta
 
+from agent.core.adaptive_guard import is_domain_allowlisted, should_enforce_action
+from agent.core.config import get_config
 from agent.core.policy import get_policy_snapshot
+
+
+def _safe_bool(value, default=False):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 class WebControlMonitor:
@@ -100,9 +110,15 @@ class WebControlMonitor:
         return rows
 
     def _collect(self):
+        cfg = get_config()
+        policy_mode = str(cfg.get("policy_mode", "advisory")).strip().lower()
+        web_enforce = _safe_bool(cfg.get("web_control_enforce", False), False)
+        non_disruptive_mode = _safe_bool(cfg.get("non_disruptive_mode", True), True)
+
         policy = get_policy_snapshot()
         blocked_domains = policy.get("blocked_domains", []) or []
-        self._apply_hosts_block(blocked_domains)
+        should_apply_hosts = web_enforce and policy_mode == "strict" and not non_disruptive_mode
+        self._apply_hosts_block(blocked_domains if should_apply_hosts else [])
         if not blocked_domains:
             return
         recent_urls = self._extract_recent_urls()
@@ -118,15 +134,31 @@ class WebControlMonitor:
                     break
             if not matched:
                 continue
+            domain = str(matched.get("domain", "")).strip().lower()
+            if is_domain_allowlisted(domain, cfg):
+                continue
+
+            category = str(matched.get("category", "custom")).strip().lower()
+            signal_score = 72 if category in {"adult", "gambling", "malware", "phishing"} else 58
+            blocked = should_apply_hosts and should_enforce_action(
+                cfg,
+                action_kind="hosts_block",
+                signal_score=signal_score,
+                critical=category in {"malware", "phishing"},
+            )
+            action = "blocked" if blocked else "policy_violation_detected"
             self.q.put(
                 {
                     "event_type": "web",
-                    "severity": "medium",
+                    "severity": "medium" if blocked else "low",
                     "payload": {
                         "url": url,
-                        "domain": str(matched.get("domain", "")),
-                        "category": str(matched.get("category", "custom")),
-                        "blocked": True,
+                        "domain": domain,
+                        "category": category or "custom",
+                        "blocked": blocked,
+                        "action": action,
+                        "detection_score": signal_score,
+                        "enforcement_deferred": bool(web_enforce and not blocked),
                         "visited_at": ts.isoformat(),
                     },
                 }

@@ -28,6 +28,6 @@ def collect_device_info():
         "os": f"{platform.system()} {platform.release()}".strip(),
         "ip_address": get_ip_address(),
         "mac_address": get_mac_address(),
-        "agent_version": "1.1.0",
+        "agent_version": "1.2.0",
         "device_user": getpass.getuser(),
     }

@@ -17,6 +17,8 @@ Etherius is an enterprise-grade cyber defense platform built for organizations t
 4. Enterprise-safe protection model:
    - AI-assisted detection and escalation
    - advisory-first behavior to reduce business disruption
+   - adaptive non-disruptive enforcement thresholds (v1.2)
+   - trusted process/domain allowlists for business continuity
 5. Integrated manager control center:
    - USB policy + whitelist management
    - app blacklist enforcement controls
