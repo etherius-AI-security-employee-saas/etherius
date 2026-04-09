@@ -22,21 +22,6 @@
     });
   }
 
-  const cursor = document.createElement("div");
-  cursor.className = "cursor-glow";
-  document.body.appendChild(cursor);
-
-  let hideTimer = null;
-  window.addEventListener("pointermove", (event) => {
-    cursor.style.opacity = "1";
-    cursor.style.left = `${event.clientX}px`;
-    cursor.style.top = `${event.clientY}px`;
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      cursor.style.opacity = "0";
-    }, 450);
-  }, { passive: true });
-
   document.querySelectorAll(".btn").forEach((button) => {
     button.addEventListener("click", (event) => {
       const rect = button.getBoundingClientRect();
