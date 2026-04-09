@@ -1,27 +1,30 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Etherius Download | Setup Center</title>
-  <meta name="description" content="Download the latest Etherius setup package and deploy one installer for manager and employee modes." />
+  <title>Etherius Downloads | Product Hub</title>
+  <meta name="description" content="Download Etherius Unified Security and Etherius MailGuard from the official Etherius product hub." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/ui.css" />
 </head>
 <body data-page="download">
   <header class="topbar-wrap">
     <div class="topbar">
-      <a href="/" data-transition="page" class="brand" aria-label="Etherius home"><img src="/assets/etherius-suite.png" alt="Etherius" /><span>ETHERIUS</span></a>
+      <a href="/" data-transition="page" class="brand" aria-label="Etherius home">
+        <img src="/assets/etherius-suite.png" alt="Etherius" />
+        <span>ETHERIUS</span>
+      </a>
       <nav class="nav-links" aria-label="Main navigation">
         <a href="/" data-transition="page" data-page="home">Home</a>
-        <a href="/inside" data-transition="page" data-page="inside">Inside</a>
-        <a href="/features" data-transition="page" data-page="features">Features</a>
-        <a href="/download" data-transition="page" data-page="download">Download</a>
+        <a href="/platform" data-transition="page" data-page="platform">Unified Security</a>
+        <a href="/mailguard" data-transition="page" data-page="mailguard">MailGuard</a>
+        <a href="/download" data-transition="page" data-page="download">Downloads</a>
       </nav>
       <div class="topbar-right">
-        <a href="/download" data-transition="page" class="btn primary desktop-only">Get Setup</a>
+        <a href="/download" data-transition="page" class="btn primary desktop-only">Product Hub</a>
         <button class="btn ghost menu-btn mobile-only" aria-label="Open menu" aria-expanded="false">Menu</button>
       </div>
     </div>
@@ -30,65 +33,159 @@
   <main>
     <section class="hero">
       <div class="container">
-        <p class="eyebrow reveal">Download Center</p>
-        <h1 class="reveal">Install Etherius In Minutes</h1>
-        <p class="subtext reveal">Single setup package. Activation decides role mode: customer admin dashboard access or employee protection mode.</p>
+        <p class="eyebrow reveal">Official Product Hub</p>
+        <h1 class="reveal">Download the right Etherius product for the right security job.</h1>
+        <p class="subtext reveal">
+          Etherius now presents its products separately so customers understand exactly what they are installing, what problem it solves, and how the deployment flow works.
+        </p>
         <div class="badge-row reveal">
-          <span class="badge">Latest setup: Etherius-Setup.exe</span>
-          <span class="badge">Version: v1.2</span>
-          <span class="badge">File channel: production</span>
+          <span class="badge">Official Etherius delivery channel</span>
+          <span class="badge">Two product tracks</span>
+          <span class="badge">Clear customer onboarding path</span>
         </div>
       </div>
     </section>
 
     <section>
       <div class="container">
-        <h2 class="section-title reveal">Download Options</h2>
-        <div class="download-grid">
-          <article class="download-card reveal">
-            <span class="kicker">Recommended</span>
-            <h3>Windows Setup</h3>
-            <p class="version">Etherius Agent v1.2</p>
-            <p class="meta">Compatible: Windows 10/11</p>
-            <p class="meta">Approx size: 17 MB</p>
-            <div class="hero-actions"><a href="/api/download" class="btn primary" aria-label="Download Etherius setup">Secure Download</a></div>
+        <div class="download-grid download-grid-wide">
+          <article class="download-card reveal" id="unified-security">
+            <span class="kicker">Etherius Product 01</span>
+            <h3>Unified Security</h3>
+            <p class="version">Etherius-Setup.exe</p>
+            <p class="meta">Windows 10/11</p>
+            <p class="meta">Single software for manager and employee modes</p>
+            <p class="meta">In-app customer dashboard after subscription activation</p>
+            <div class="download-actions">
+              <a href="/api/download-platform" class="btn primary">Download Windows Setup</a>
+              <a href="/platform" data-transition="page" class="btn ghost">View Product Details</a>
+            </div>
+            <div class="download-note">
+              Best for companies that want one installed software with role-safe access, subscription-controlled manager activation, and employee protection inside the same product.
+            </div>
           </article>
-          <article class="download-card reveal">
-            <span class="kicker">Activation</span>
-            <h3>Manager Access Flow</h3>
-            <p class="meta">1. Install software</p>
-            <p class="meta">2. Enter Customer Admin license key</p>
-            <p class="meta">3. Unlock manager dashboard section</p>
-            <div class="hero-actions"><a href="/inside" data-transition="page" class="btn ghost">View Role Flow</a></div>
-          </article>
-          <article class="download-card reveal">
-            <span class="kicker">Manual</span>
-            <h3>Python Package</h3>
-            <p class="meta">For advanced environments</p>
-            <p class="meta">Command:</p>
-            <p class="version">pip install etherius-agent</p>
-            <div class="hero-actions"><button class="btn ghost" data-copy="pip install etherius-agent" aria-label="Copy pip command">Copy Command</button></div>
+
+          <article class="download-card reveal" id="mailguard">
+            <span class="kicker">Etherius Product 02</span>
+            <h3>MailGuard</h3>
+            <p class="version">MailGuard-Extension.zip</p>
+            <p class="meta">Chrome extension package</p>
+            <p class="meta">Focused on inbox fraud and suspicious email detection</p>
+            <p class="meta">Supports Gmail and Outlook web experiences</p>
+            <div class="download-actions">
+              <a href="/api/download-mailguard" class="btn primary">Download Extension Package</a>
+              <a href="/mailguard" data-transition="page" class="btn ghost">View Product Details</a>
+            </div>
+            <div class="download-note">
+              Best for customers who want a lighter, browser-based Etherius product for phishing, impersonation, and fake internship scam detection.
+            </div>
           </article>
         </div>
+      </div>
+    </section>
 
-        <div class="note reveal">
-          <strong>After install</strong>: customer admin activates with company key and receives employee allocation based on purchased quantity. Employees activate with employee key only and run protection mode. v1.2 adds non-disruptive AI guard and trusted allowlists to reduce accidental workflow blocking.
+    <section>
+      <div class="container">
+        <div class="split-head reveal">
+          <div>
+            <p class="eyebrow">Quick Choice Guide</p>
+            <h2 class="section-title">Which Etherius product should the customer choose?</h2>
+          </div>
+          <p class="section-sub">This makes the website feel like a real product organization instead of a single generic installer page.</p>
         </div>
 
-        <div class="grid">
-          <article class="card reveal"><span class="kicker">Requirement</span><h3>System</h3><p>Windows 10/11, 512MB RAM minimum, internet connection for telemetry and policy sync.</p></article>
-          <article class="card reveal"><span class="kicker">Security</span><h3>Role Boundaries</h3><p>Employee mode cannot access manager dashboard controls. Manager mode is unlocked only by valid admin key.</p></article>
-          <article class="card reveal"><span class="kicker">Operations</span><h3>What Manager Sees</h3><p>Employee status, alerts, risk level, login/logout activity, and action history in one software console.</p></article>
+        <div class="grid grid-2">
+          <article class="card reveal">
+            <span class="kicker">Choose Unified Security</span>
+            <h3>When the customer needs managed employee protection</h3>
+            <p>Use this when the customer wants manager activation, employee seat allocation, in-app operational visibility, and a broader endpoint security workflow.</p>
+          </article>
+          <article class="card reveal">
+            <span class="kicker">Choose MailGuard</span>
+            <h3>When the customer needs inbox-level fraud visibility fast</h3>
+            <p>Use this when the customer wants a quick browser-side rollout for suspicious email detection without deploying the larger endpoint suite first.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="split-head reveal">
+          <div>
+            <p class="eyebrow">Install Notes</p>
+            <h2 class="section-title">Simple onboarding for both product types.</h2>
+          </div>
+          <p class="section-sub">Both downloads are now structured as separate product journeys so users can understand what happens after the click.</p>
+        </div>
+        <div class="timeline">
+          <article class="timeline-item reveal">
+            <div class="step-badge">01</div>
+            <div>
+              <strong>Unified Security installation</strong>
+              <p>Download the Windows setup, install the product, and activate the manager surface with the customer subscription key.</p>
+            </div>
+            <span class="timeline-tag">Suite</span>
+          </article>
+          <article class="timeline-item reveal">
+            <div class="step-badge">02</div>
+            <div>
+              <strong>Manager allocates employees</strong>
+              <p>Managers generate employee activations inside the software based on the licensed seat quantity.</p>
+            </div>
+            <span class="timeline-tag">Seats</span>
+          </article>
+          <article class="timeline-item reveal">
+            <div class="step-badge">03</div>
+            <div>
+              <strong>MailGuard extension onboarding</strong>
+              <p>Download the extension package, extract it, and add it to Chrome using the load-unpacked flow.</p>
+            </div>
+            <span class="timeline-tag">Extension</span>
+          </article>
+          <article class="timeline-item reveal">
+            <div class="step-badge">04</div>
+            <div>
+              <strong>User starts using Etherius protection</strong>
+              <p>The customer now enters either the unified suite journey or the inbox-protection journey depending on the selected product.</p>
+            </div>
+            <span class="timeline-tag">Use</span>
+          </article>
         </div>
       </div>
     </section>
   </main>
 
   <footer class="page-footer">
-    <div class="container">
-      <div class="hero-actions">
-        <a href="/api/download" class="btn primary">Download Now</a>
-        <a href="/features" data-transition="page" class="btn ghost">See Feature Matrix</a>
+    <div class="container footer-grid">
+      <div>
+        <a href="/" data-transition="page" class="brand">
+          <img src="/assets/etherius-suite.png" alt="Etherius" />
+          <span>ETHERIUS</span>
+        </a>
+        <p class="footer-copy">Official download center for the Etherius product line.</p>
+      </div>
+      <div>
+        <h4>Downloads</h4>
+        <ul>
+          <li><a href="/api/download-platform">Unified Security Setup</a></li>
+          <li><a href="/api/download-mailguard">MailGuard Package</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Product Pages</h4>
+        <ul>
+          <li><a href="/platform" data-transition="page">Unified Security</a></li>
+          <li><a href="/mailguard" data-transition="page">MailGuard</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Brand</h4>
+        <ul>
+          <li>Etherius Security</li>
+          <li>AI-led security product delivery</li>
+          <li>Focused customer journeys</li>
+        </ul>
       </div>
     </div>
   </footer>
