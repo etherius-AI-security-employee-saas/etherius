@@ -53,6 +53,66 @@ body::before {
     radial-gradient(circle at 12% 12%, rgba(255, 184, 108, 0.12), transparent 18%),
     radial-gradient(circle at 84% 14%, rgba(106, 229, 255, 0.12), transparent 22%),
     radial-gradient(circle at 62% 86%, rgba(255, 123, 147, 0.08), transparent 20%);
+  animation: ambientPulse 18s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 184, 108, 0.16), transparent 14%),
+    radial-gradient(circle at 70% 50%, rgba(106, 229, 255, 0.16), transparent 16%),
+    radial-gradient(circle at 40% 80%, rgba(152, 124, 255, 0.14), transparent 16%);
+  filter: blur(36px);
+  opacity: 0.36;
+  animation: auroraDrift 26s linear infinite;
+}
+
+.bg-motes {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.bg-motes span {
+  position: absolute;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+  animation: moteFloat linear infinite;
+}
+
+@keyframes ambientPulse {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.74; transform: scale(1.03); }
+}
+
+@keyframes auroraDrift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-2%, 1.5%, 0) scale(1.08); }
+  100% { transform: translate3d(2%, -1.5%, 0) scale(1); }
+}
+
+@keyframes moteFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(18px, -120vh, 0) scale(1.15);
+    opacity: 0;
+  }
 }
 
 a {
@@ -854,5 +914,9 @@ section {
   .reveal {
     opacity: 1;
     transform: none;
+  }
+
+  .bg-motes {
+    display: none;
   }
 }

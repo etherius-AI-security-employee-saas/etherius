@@ -2,6 +2,22 @@
   const body = document.body;
   const page = body.dataset.page || "";
 
+  const motes = document.createElement("div");
+  motes.className = "bg-motes";
+  for (let i = 0; i < 28; i += 1) {
+    const mote = document.createElement("span");
+    const size = 3 + Math.random() * 8;
+    mote.style.width = `${size}px`;
+    mote.style.height = `${size}px`;
+    mote.style.left = `${Math.random() * 100}%`;
+    mote.style.bottom = `${-10 - Math.random() * 40}px`;
+    mote.style.animationDuration = `${18 + Math.random() * 22}s`;
+    mote.style.animationDelay = `${Math.random() * 14}s`;
+    mote.style.opacity = `${0.2 + Math.random() * 0.35}`;
+    motes.appendChild(mote);
+  }
+  document.body.appendChild(motes);
+
   const nav = document.querySelector(".nav-links");
   const menuBtn = document.querySelector(".menu-btn");
   if (nav && menuBtn) {
