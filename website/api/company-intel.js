@@ -1,4 +1,5 @@
-const TIMEOUT_MS = 4200;
+const TIMEOUT_MS = 2800;
+const MAX_RESEARCH_SOURCES = 12;
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -17,68 +18,94 @@ module.exports = async function handler(req, res) {
 
   const orgHint = deriveOrgHint(senderName, senderDomain, subject, body);
   const queries = buildResearchQueries(senderDomain, orgHint);
+  const sourceTargets = buildSourceTargets(senderDomain, orgHint).slice(0, MAX_RESEARCH_SOURCES);
 
-  const [rdap, clearbit, wiki, certs, urlhaus, searchResults, officialSnapshot, trustpilotSnapshot, scamadviserSnapshot] = await Promise.all([
+  const [rdap, clearbit, wiki, certs, urlhaus, searchResults, sourceEvidence] = await Promise.all([
     fetchJsonWithTimeout(`https://rdap.org/domain/${encodeURIComponent(senderDomain)}`),
     fetchJsonWithTimeout(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(orgHint)}`),
     fetchJsonWithTimeout(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(orgHint)}&limit=3&namespace=0&format=json`),
     fetchJsonWithTimeout(`https://crt.sh/?q=%25.${encodeURIComponent(senderDomain)}&output=json`),
     fetchUrlHaus(senderDomain),
     Promise.all(queries.map((query) => fetchDuckDuckGo(query))),
-    fetchTextSnapshot(`https://r.jina.ai/http://${senderDomain}`),
-    fetchTextSnapshot(`https://r.jina.ai/http://www.trustpilot.com/review/${senderDomain}`),
-    fetchTextSnapshot(`https://r.jina.ai/http://www.scamadviser.com/check-website/${senderDomain}`)
+    Promise.all(sourceTargets.map((target) => fetchSourceEvidence(target, senderDomain, orgHint)))
   ]);
 
   const searchSignals = analyzeSearchResults(searchResults, senderDomain, orgHint);
-  const snapshotSignals = analyzeTextSnapshots({
-    senderDomain,
-    orgHint,
-    officialSnapshot,
-    trustpilotSnapshot,
-    scamadviserSnapshot
-  });
+  const sourceSignals = analyzeSourceEvidence(sourceEvidence);
   const domainAgeDays = extractDomainAgeDays(rdap);
   const clearbitMatch = findClearbitMatch(clearbit, senderDomain, orgHint);
   const wikiMatch = findWikiMatch(wiki, orgHint);
-  const certCount = Array.isArray(certs) ? Math.min(certs.length, 500) : 0;
+  const certCount = Array.isArray(certs) ? Math.min(certs.length, 600) : 0;
   const urlhausMalicious = Boolean(urlhaus?.malicious);
 
   const inferredOfficial = domainAgeDays >= 3650 && certCount >= 10;
-  const officialMatch = Boolean(clearbitMatch || searchSignals.officialMatch || snapshotSignals.officialMatch || inferredOfficial);
+  const officialMatch = Boolean(
+    clearbitMatch ||
+    searchSignals.officialMatch ||
+    sourceSignals.officialMatches >= 2 ||
+    inferredOfficial
+  );
+
   const popularityScore = clampScore(
     (clearbitMatch ? 2 : 0) +
     (wikiMatch ? 1 : 0) +
     (certCount >= 3 ? 1 : 0) +
     searchSignals.popularityScore +
-    snapshotSignals.popularityScore
+    sourceSignals.popularityHits
   );
 
-  const reviewPositiveScore = clampScore(searchSignals.reviewPositiveScore + snapshotSignals.reviewPositiveScore + (wikiMatch ? 1 : 0));
-  const reviewNegativeScore = clampScore(searchSignals.reviewNegativeScore + snapshotSignals.reviewNegativeScore);
-  const lowFootprintPenalty = (!officialMatch && popularityScore === 0 && domainAgeDays >= 0 && domainAgeDays <= 365) ? 2 : 0;
+  const reviewPositiveScore = clampScore(
+    searchSignals.reviewPositiveScore +
+    sourceSignals.reviewPositiveHits +
+    (wikiMatch ? 1 : 0)
+  );
+
+  const reviewNegativeScore = clampScore(
+    searchSignals.reviewNegativeScore +
+    sourceSignals.reviewNegativeHits
+  );
+
+  const lowFootprintPenalty = (!officialMatch && popularityScore <= 1 && domainAgeDays >= 0 && domainAgeDays <= 365) ? 2 : 0;
   const suspiciousDomainPenalty = looksSuspiciousDomain(senderDomain) ? 2 : 0;
-  const scamSignalScore = clampScore(searchSignals.scamSignalScore + snapshotSignals.scamSignalScore + (urlhausMalicious ? 3 : 0) + lowFootprintPenalty + suspiciousDomainPenalty);
+  const scamSignalScore = clampScore(
+    searchSignals.scamSignalScore +
+    sourceSignals.scamHits +
+    (urlhausMalicious ? 3 : 0) +
+    lowFootprintPenalty +
+    suspiciousDomainPenalty
+  );
+
+  const trustedEnterpriseBoost = (officialMatch && domainAgeDays >= 3650 && scamSignalScore <= 1) ? 2 : 0;
+  const legitimacyScore = clamp100(
+    45 +
+    (officialMatch ? 20 : 0) +
+    Math.min(popularityScore * 5, 20) +
+    Math.min(reviewPositiveScore * 4, 16) -
+    Math.min(reviewNegativeScore * 5, 20) -
+    Math.min(scamSignalScore * 9, 36) +
+    trustedEnterpriseBoost
+  );
 
   const sources = dedupeUrls([
     ...searchSignals.sources,
-    ...snapshotSignals.sources,
+    ...sourceSignals.reachableSources,
     clearbitMatch?.domain ? `https://${clearbitMatch.domain}` : "",
     wikiMatch?.url || "",
     "https://rdap.org/",
     "https://crt.sh/",
     "https://urlhaus.abuse.ch/"
-  ]).slice(0, 8);
+  ]).slice(0, 16);
 
   const summary = buildSummary({
     senderDomain,
     domainAgeDays,
     officialMatch,
     popularityScore,
-    reviewPositiveScore,
-    reviewNegativeScore,
     scamSignalScore,
-    urlhausMalicious
+    urlhausMalicious,
+    legitimacyScore,
+    sourcesAttempted: sourceTargets.length,
+    sourcesReachable: sourceSignals.reachableCount
   });
 
   return res.status(200).json({
@@ -90,7 +117,10 @@ module.exports = async function handler(req, res) {
       reviewPositiveScore,
       reviewNegativeScore,
       scamSignalScore,
+      legitimacyScore,
       sources,
+      sourcesAttempted: sourceTargets.length,
+      sourcesReachable: sourceSignals.reachableCount,
       summary
     }
   });
@@ -103,7 +133,28 @@ function buildResearchQueries(senderDomain, orgHint) {
     `${orgHint} glassdoor reviews`,
     `${orgHint} scam complaints`,
     `${senderDomain} phishing reports`,
-    `${senderDomain} linkedin company`
+    `${senderDomain} linkedin company`,
+    `${senderDomain} reddit reviews`,
+    `${orgHint} is legit`
+  ];
+}
+
+function buildSourceTargets(senderDomain, orgHint) {
+  const encodedDomain = encodeURIComponent(senderDomain);
+  const encodedHint = encodeURIComponent(orgHint);
+  return [
+    { label: "Official Site", url: `http://${senderDomain}` },
+    { label: "Wikipedia", url: `http://en.wikipedia.org/wiki/${encodedHint}` },
+    { label: "LinkedIn", url: `http://www.linkedin.com/company/${encodedHint}` },
+    { label: "Crunchbase", url: `http://www.crunchbase.com/organization/${encodedHint}` },
+    { label: "Glassdoor", url: `http://www.glassdoor.com/Reviews/${encodedHint}-Reviews-EI_IE.htm` },
+    { label: "Indeed", url: `http://www.indeed.com/cmp/${encodedHint}/reviews` },
+    { label: "Trustpilot", url: `http://www.trustpilot.com/review/${encodedDomain}` },
+    { label: "ScamAdviser", url: `http://www.scamadviser.com/check-website/${encodedDomain}` },
+    { label: "G2", url: `http://www.g2.com/search?query=${encodedHint}` },
+    { label: "Sitejabber", url: `http://www.sitejabber.com/search?query=${encodedHint}` },
+    { label: "Reddit", url: `http://www.reddit.com/search/?q=${encodedHint}` },
+    { label: "BBB", url: `http://www.bbb.org/search?find_text=${encodedHint}` }
   ];
 }
 
@@ -120,6 +171,28 @@ function deriveOrgHint(senderName, senderDomain, subject, body) {
   }
 
   return senderDomain.split(".")[0].replace(/[-_]/g, " ").slice(0, 64) || senderDomain;
+}
+
+async function fetchSourceEvidence(target, senderDomain, orgHint) {
+  const proxyUrl = `https://r.jina.ai/${target.url}`;
+  const content = await fetchTextSnapshot(proxyUrl);
+  const text = String(content || "").toLowerCase();
+  const reachable = text.length > 80;
+  const orgToken = String(orgHint || "").toLowerCase();
+  const officialMention = reachable && (text.includes(senderDomain) || (orgToken && text.includes(orgToken)));
+  const reviewPositiveHits = countKeywordHits(text, ["verified", "legitimate", "trusted", "well known", "established", "official"]);
+  const reviewNegativeHits = countKeywordHits(text, ["complaint", "negative", "lawsuit", "warning", "bad review", "unsafe"]);
+  const scamHits = countKeywordHits(text, ["scam", "fraud", "phishing", "fake recruiter", "advance fee", "spam", "impersonation"]);
+
+  return {
+    label: target.label,
+    url: target.url.replace(/^http:\/\//, "https://"),
+    reachable,
+    officialMention,
+    reviewPositiveHits,
+    reviewNegativeHits,
+    scamHits
+  };
 }
 
 async function fetchDuckDuckGo(query) {
@@ -164,9 +237,23 @@ async function fetchJsonWithTimeout(url) {
   }
 }
 
+async function fetchTextSnapshot(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const response = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "Etherius-Company-Intel/1.0" } });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      return "";
+    }
+    return await response.text();
+  } catch (_error) {
+    return "";
+  }
+}
+
 function analyzeSearchResults(results, senderDomain, orgHint) {
   const sourceUrls = [];
-  const textChunks = [];
   let officialMatch = false;
   let popularityScore = 0;
   let reviewPositiveScore = 0;
@@ -182,7 +269,6 @@ function analyzeSearchResults(results, senderDomain, orgHint) {
     const abstractUrl = String(item.AbstractURL || "");
     const related = flattenRelatedTopics(item.RelatedTopics || []);
 
-    textChunks.push(abstractText, heading, related);
     if (abstractUrl) {
       sourceUrls.push(abstractUrl);
     }
@@ -208,6 +294,26 @@ function analyzeSearchResults(results, senderDomain, orgHint) {
     reviewNegativeScore: clampScore(reviewNegativeScore),
     scamSignalScore: clampScore(scamSignalScore),
     sources: dedupeUrls(sourceUrls)
+  };
+}
+
+function analyzeSourceEvidence(items) {
+  const list = Array.isArray(items) ? items : [];
+  const reachable = list.filter((item) => item?.reachable);
+  return {
+    reachableCount: reachable.length,
+    officialMatches: reachable.filter((item) => item.officialMention).length,
+    popularityHits: clampScore(
+      reachable.length >= 8 ? 5 :
+      reachable.length >= 6 ? 4 :
+      reachable.length >= 4 ? 3 :
+      reachable.length >= 2 ? 2 :
+      reachable.length >= 1 ? 1 : 0
+    ),
+    reviewPositiveHits: clampScore(reachable.reduce((acc, item) => acc + Number(item.reviewPositiveHits || 0), 0)),
+    reviewNegativeHits: clampScore(reachable.reduce((acc, item) => acc + Number(item.reviewNegativeHits || 0), 0)),
+    scamHits: clampScore(reachable.reduce((acc, item) => acc + Number(item.scamHits || 0), 0)),
+    reachableSources: dedupeUrls(reachable.map((item) => item.url))
   };
 }
 
@@ -274,17 +380,15 @@ function buildSummary(input) {
   const ageText = input.domainAgeDays < 0
     ? "domain age unavailable"
     : years > 0 ? `${years}+ years` : `${input.domainAgeDays} days`;
+  const coverage = `${input.sourcesReachable}/${input.sourcesAttempted}`;
 
   if (input.scamSignalScore >= 3 || input.urlhausMalicious) {
-    return `Web research flagged elevated risk: scam/fraud mentions or threat-intel hits were found for ${input.senderDomain} (domain age ${ageText}).`;
+    return `Clear answer: likely high risk/fake. Research coverage ${coverage}. Scam/fraud indicators were found for ${input.senderDomain} (domain age ${ageText}).`;
   }
-  if (input.officialMatch && input.domainAgeDays >= 3650 && input.scamSignalScore <= 1) {
-    return `Web research indicates a likely legitimate established organization for ${input.senderDomain} with long domain history (${ageText}) and low fraud signals.`;
+  if (input.officialMatch && input.legitimacyScore >= 75 && input.scamSignalScore <= 1) {
+    return `Clear answer: likely legitimate organization. Research coverage ${coverage}. ${input.senderDomain} shows official footprint with low fraud signals (domain age ${ageText}).`;
   }
-  if (input.officialMatch && input.popularityScore >= 3 && input.reviewNegativeScore <= 1) {
-    return `Web research indicates a strong legitimate footprint for ${input.senderDomain}: official presence, broad popularity, and low complaint signals (domain age ${ageText}).`;
-  }
-  return `Web research for ${input.senderDomain} is mixed. Verify high-impact requests manually. Domain age: ${ageText}.`;
+  return `Clear answer: needs manual verification. Research coverage ${coverage}. Mixed trust signals were found for ${input.senderDomain} (domain age ${ageText}).`;
 }
 
 function normalizeDomain(value) {
@@ -305,12 +409,16 @@ function extractDomain(urlValue) {
 }
 
 function countKeywordHits(text, keywords) {
-  const normalized = String(text || "");
+  const normalized = String(text || "").toLowerCase();
   return keywords.reduce((acc, keyword) => acc + (normalized.includes(keyword) ? 1 : 0), 0);
 }
 
 function clampScore(value) {
   return Math.max(0, Math.min(5, Number(value || 0)));
+}
+
+function clamp100(value) {
+  return Math.max(0, Math.min(100, Math.round(Number(value || 0))));
 }
 
 function dedupeUrls(urls) {
@@ -330,59 +438,4 @@ function looksSuspiciousDomain(domain) {
     return true;
   }
   return false;
-}
-
-async function fetchTextSnapshot(url) {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const response = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "Etherius-Company-Intel/1.0" } });
-    clearTimeout(timeout);
-    if (!response.ok) {
-      return "";
-    }
-    return await response.text();
-  } catch (_error) {
-    return "";
-  }
-}
-
-function analyzeTextSnapshots(input) {
-  const officialText = String(input.officialSnapshot || "").toLowerCase();
-  const trustpilotText = String(input.trustpilotSnapshot || "").toLowerCase();
-  const scamadviserText = String(input.scamadviserSnapshot || "").toLowerCase();
-  const hint = String(input.orgHint || "").toLowerCase();
-  const senderDomain = String(input.senderDomain || "").toLowerCase();
-
-  const officialMatch = officialText.includes(senderDomain) || (hint && officialText.includes(hint));
-  const popularityScore = [
-    officialText.includes(senderDomain),
-    trustpilotText.includes(senderDomain),
-    scamadviserText.includes(senderDomain)
-  ].filter(Boolean).length;
-
-  const reviewPositiveScore =
-    countKeywordHits(trustpilotText, ["excellent", "great", "verified company", "trustscore", "review"]) +
-    countKeywordHits(officialText, ["about us", "careers", "investors"]);
-
-  const reviewNegativeScore =
-    countKeywordHits(trustpilotText, ["poor", "bad", "complaint", "negative"]) +
-    countKeywordHits(scamadviserText, ["suspicious", "low trust", "warning"]);
-
-  const scamSignalScore =
-    countKeywordHits(scamadviserText, ["scam", "phishing", "fraud", "unsafe", "malicious"]) +
-    countKeywordHits(trustpilotText, ["scam", "fraud"]);
-
-  return {
-    officialMatch,
-    popularityScore: clampScore(popularityScore),
-    reviewPositiveScore: clampScore(reviewPositiveScore),
-    reviewNegativeScore: clampScore(reviewNegativeScore),
-    scamSignalScore: clampScore(scamSignalScore),
-    sources: [
-      `https://${senderDomain}`,
-      `https://www.trustpilot.com/review/${senderDomain}`,
-      `https://www.scamadviser.com/check-website/${senderDomain}`
-    ]
-  };
 }
