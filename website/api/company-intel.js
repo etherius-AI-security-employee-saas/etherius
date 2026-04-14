@@ -1,5 +1,21 @@
 const TIMEOUT_MS = 2800;
 const MAX_RESEARCH_SOURCES = 12;
+const TRUSTED_ENTERPRISE_DOMAINS = [
+  "google.com",
+  "microsoft.com",
+  "linkedin.com",
+  "github.com",
+  "amazon.com",
+  "apple.com",
+  "adobe.com",
+  "oracle.com",
+  "salesforce.com",
+  "deloitte.com",
+  "accenture.com",
+  "tcs.com",
+  "infosys.com",
+  "wipro.com"
+];
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -43,6 +59,7 @@ module.exports = async function handler(req, res) {
     clearbitMatch ||
     searchSignals.officialMatch ||
     sourceSignals.officialMatches >= 2 ||
+    TRUSTED_ENTERPRISE_DOMAINS.some((trusted) => senderDomain === trusted || senderDomain.endsWith(`.${trusted}`)) ||
     inferredOfficial
   );
 
@@ -76,6 +93,7 @@ module.exports = async function handler(req, res) {
   );
 
   const trustedEnterpriseBoost = (officialMatch && domainAgeDays >= 3650 && scamSignalScore <= 1) ? 2 : 0;
+  const trustedDomainBoost = isTrustedEnterpriseDomain(senderDomain) ? 12 : 0;
   const legitimacyScore = clamp100(
     45 +
     (officialMatch ? 20 : 0) +
@@ -83,7 +101,8 @@ module.exports = async function handler(req, res) {
     Math.min(reviewPositiveScore * 4, 16) -
     Math.min(reviewNegativeScore * 5, 20) -
     Math.min(scamSignalScore * 9, 36) +
-    trustedEnterpriseBoost
+    trustedEnterpriseBoost +
+    trustedDomainBoost
   );
 
   const sources = dedupeUrls([
@@ -104,6 +123,8 @@ module.exports = async function handler(req, res) {
     scamSignalScore,
     urlhausMalicious,
     legitimacyScore,
+    trustedDomain: isTrustedEnterpriseDomain(senderDomain),
+    suspiciousDomain: looksSuspiciousDomain(senderDomain),
     sourcesAttempted: sourceTargets.length,
     sourcesReachable: sourceSignals.reachableCount
   });
@@ -159,6 +180,12 @@ function buildSourceTargets(senderDomain, orgHint) {
 }
 
 function deriveOrgHint(senderName, senderDomain, subject, body) {
+  const senderNameClean = String(senderName || "").trim();
+  const genericSenderName = /^(hr|hr team|human resources|recruiter|talent|hiring team|admin|support|team)$/i.test(senderNameClean);
+  if (!senderNameClean || genericSenderName) {
+    return senderDomain.split(".")[0].replace(/[-_]/g, " ").slice(0, 64) || senderDomain;
+  }
+
   const raw = [senderName, subject, body].join(" ");
   const cleaned = raw
     .replace(/[^a-zA-Z0-9\s]/g, " ")
@@ -179,10 +206,18 @@ async function fetchSourceEvidence(target, senderDomain, orgHint) {
   const text = String(content || "").toLowerCase();
   const reachable = text.length > 80;
   const orgToken = String(orgHint || "").toLowerCase();
-  const officialMention = reachable && (text.includes(senderDomain) || (orgToken && text.includes(orgToken)));
+  const officialMention = reachable && text.includes(senderDomain);
   const reviewPositiveHits = countKeywordHits(text, ["verified", "legitimate", "trusted", "well known", "established", "official"]);
   const reviewNegativeHits = countKeywordHits(text, ["complaint", "negative", "lawsuit", "warning", "bad review", "unsafe"]);
-  const scamHits = countKeywordHits(text, ["scam", "fraud", "phishing", "fake recruiter", "advance fee", "spam", "impersonation"]);
+  const scamHits = countKeywordHits(text, [
+    "reported scam",
+    "fraud complaint",
+    "phishing campaign",
+    "blacklisted domain",
+    "malicious domain",
+    "advance fee scam",
+    "impersonation attack"
+  ]);
 
   return {
     label: target.label,
@@ -284,7 +319,14 @@ function analyzeSearchResults(results, senderDomain, orgHint) {
     }
     reviewPositiveScore += countKeywordHits(combined, ["trusted", "legitimate", "official", "verified", "established"]);
     reviewNegativeScore += countKeywordHits(combined, ["complaint", "issue", "negative review", "warning"]);
-    scamSignalScore += countKeywordHits(combined, ["scam", "fraud", "phishing", "fake recruiter", "advance fee", "spam"]);
+    scamSignalScore += countKeywordHits(combined, [
+      "reported scam",
+      "fraud complaint",
+      "phishing campaign",
+      "blacklisted domain",
+      "advance fee scam",
+      "fake recruiter scam"
+    ]);
   });
 
   return {
@@ -382,8 +424,11 @@ function buildSummary(input) {
     : years > 0 ? `${years}+ years` : `${input.domainAgeDays} days`;
   const coverage = `${input.sourcesReachable}/${input.sourcesAttempted}`;
 
-  if (input.scamSignalScore >= 3 || input.urlhausMalicious) {
+  if (input.scamSignalScore >= 3 || input.urlhausMalicious || (input.suspiciousDomain && input.legitimacyScore <= 30)) {
     return `Clear answer: likely high risk/fake. Research coverage ${coverage}. Scam/fraud indicators were found for ${input.senderDomain} (domain age ${ageText}).`;
+  }
+  if (input.trustedDomain && input.scamSignalScore <= 1) {
+    return `Clear answer: likely legitimate organization. Research coverage ${coverage}. ${input.senderDomain} matches a trusted enterprise profile with low fraud signals (domain age ${ageText}).`;
   }
   if (input.officialMatch && input.legitimacyScore >= 75 && input.scamSignalScore <= 1) {
     return `Clear answer: likely legitimate organization. Research coverage ${coverage}. ${input.senderDomain} shows official footprint with low fraud signals (domain age ${ageText}).`;
@@ -438,4 +483,9 @@ function looksSuspiciousDomain(domain) {
     return true;
   }
   return false;
+}
+
+function isTrustedEnterpriseDomain(domain) {
+  const normalized = normalizeDomain(domain);
+  return TRUSTED_ENTERPRISE_DOMAINS.some((trusted) => normalized === trusted || normalized.endsWith(`.${trusted}`));
 }

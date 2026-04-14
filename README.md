@@ -69,6 +69,15 @@ Customers should receive only installer output, never source code.
 
 Etherius is engineered to feel premium on the surface while operating like a disciplined security platform underneath.
 
+## Public URLs
+
+1. Website: `https://etherius-security-site.vercel.app`
+2. Download hub: `https://etherius-security-site.vercel.app/download`
+3. MailGuard page: `https://etherius-security-site.vercel.app/mailguard`
+
+Domain note:
+`.com` domains are not free from registrars. Current production stays on the secure Vercel domain until a purchased custom domain is connected.
+
 ## Release Trust (Important)
 
 To avoid Windows SmartScreen "Unknown Publisher" warnings, production releases must be code signed.
